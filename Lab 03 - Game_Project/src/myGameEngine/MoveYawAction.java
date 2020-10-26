@@ -1,6 +1,6 @@
 package myGameEngine;
 
-import a2.MyGame;
+import a3.MyGame;
 import net.java.games.input.Event;
 import ray.input.action.AbstractInputAction;
 import ray.rage.scene.SceneNode;

@@ -5,11 +5,15 @@ package a3;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 
-import javax.swing.ImageIcon;
+import ray.networking.IGameConnection.ProtocolType;
+import java.util.UUID;
 
 import myGameEngine.*;
 import ray.input.GenericInputManager;
@@ -72,39 +76,27 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	private Action yawNodeActionGP;
 	private Action pitchNodeActionGP;
 	
-    public MyGame() {
+	private String serverAddress;    // Needed Variables for Network Operation
+	private int serverPort;
+	private ProtocolType serverProtocol;
+	private ProtocolClient protClient;
+	private boolean isClientConnected;
+	private ArrayList<UUID> gameObjectsToRemove;
+	
+    public MyGame(String serverAddr, int sPort, String placeHolder) {
         super();
-		System.out.println("\nPlayer One Controls: ");
-		System.out.println("Press SPACE to disable centering of Mouse");
-		System.out.println("Press ESCAPE to exit the Game.");
-		System.out.println("Press A/D to Move Left/Right");
-		System.out.println("Press W/S to Move Forward/Backward");
-		System.out.println("Press Left/Right Arrow keys to Yaw");
-		System.out.println("Press Up/Down Arrow keys to Pitch");
-		
-		System.out.println("\nPlayer One Orbit Camera Controls: ");
-		System.out.println("Press J/L to orbit camera around dolphin.");
-		System.out.println("Press I/K to zoom in/out camera at dolphin.");
-		System.out.println("Press U/O to elevate up/down the camera around dolphin.");
-		System.out.println("Motion Mouse Left/Right to orbit camera around dolphin.");
-		System.out.println("Use the mouse Wheel to zoom in/out camera at dolphin.");
-		System.out.println("Motion the Mouse Forward/Backward to elevate up/down the camera around dolphin.");
-		
-		System.out.println("\nPlayer Two Controls (Using the Gamepad/game Controller): ");
-		System.out.println("Use Left joyStick to move dolphin Forward/Backward vertically");
-		System.out.println("Use Left joyStick to move dolphin Left/Right horizontally");
-		System.out.println("Use Right joyStick to Pitch the dolphin vertically");
-		System.out.println("Use Right joyStick to Yaw the dolphin horizontally");
-		
-		System.out.println("\nPlayer Two Orbit Camera Controls: ");
-		System.out.println("Use Button 9 to exit out of the game.");
-		System.out.println("Use Button 1 and 2 to orbit camera around dolphin..");
-		System.out.println("Use Button 3 and 4 to zoom in/out camera at dolphin.");
-		System.out.println("Use Button 5 and 6 to elevate up/down the camera around dolphin..");
+        
+        System.out.println("MyGame Initilization");
+        serverAddress = serverAddr;
+        serverPort = sPort;
+        serverProtocol = ProtocolType.TCP; // Change to UDP
+        
+        if (serverAddress == "")
+        {   serverAddress = "10.0.0.246";   } // Hrios's example local IP address. 
     }
 
     public static void main(String[] args) {
-        Game game = new MyGame();
+        Game game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
         try {
             game.startup();
             game.run();
@@ -377,6 +369,28 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	    	}
 	    };
     }
+	
+	private void setupNetworking(float elpsTime)
+	{ 
+		gameObjectsToRemove = new ArrayList<UUID>();
+		isClientConnected = false;
+		try
+		{ 
+			protClient = new ProtocolClient(InetAddress.getByName(serverAddress), 
+					serverPort, serverProtocol, this);
+		} 
+		catch (UnknownHostException e)
+		{   e.printStackTrace();   } 
+		catch (IOException e) 
+		{   e.printStackTrace();   }
+		if (protClient == null)
+		{   System.out.println("missing protocol host");   }
+		else
+		{ // ask client protocol to send initial join message
+		  // to server, with a unique identifier for this client
+		  protClient.sendJoinMessage();
+		} 
+	}
 
 	// Game Logic Goes here. 
     @Override
@@ -406,6 +420,10 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		// Go through game objects and manage game count.
 		gamePlanetEnvironment();
 		
+		// Process Network Needs
+		setupNetworking(elapsTime/1000.0f);
+		
+		
 		orbitController1.updateCameraPosition(); // Orbit Controller 
 		orbitController2.updateCameraPosition(); // Orbit Controller 
 				
@@ -421,6 +439,25 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 			timeCount = false;
 		}
 	}
+    
+    // Random func.
+    protected void processNetworking(float elapsTime)
+    { 
+    	SceneManager sm = getEngine().getSceneManager();
+    	
+    	// Process packets received by the client from the server
+    	if (protClient != null)
+    	{   protClient.processPackets();   }
+    	
+    	// remove ghost avatars for players who have left the game
+    	Iterator<UUID> it = gameObjectsToRemove.iterator();
+    
+	    while(it.hasNext())
+	    { 
+	    	sm.destroySceneNode(it.next().toString());
+	    }
+	    gameObjectsToRemove.clear();
+    }
     
 	// Manages the Game rules such as point increase when in C mode.
     private void gamePlanetEnvironment()
@@ -604,5 +641,23 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	{
 		// Returns the limit of dolphin movement.
 		return planeLoc;
+	}
+
+	// Network Used Function - Connection Status Setter*
+	public void setIsConnected(boolean b) 
+	{
+		// Info returned from the UDP Client manager.
+		isClientConnected = b;
+	}
+
+	// * Assuming we are making a one view person game with networking, 
+	// There will be only consistent player to refer to .
+	// For now, I'm passing localDolphin pos. 
+	public Vector3f getPlayerPosition() 
+	{
+		// return DolphinPos.
+    	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
+
+		return (Vector3f) dolphinN.getLocalPosition();
 	}
 }

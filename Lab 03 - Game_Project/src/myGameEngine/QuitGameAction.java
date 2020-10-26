@@ -2,7 +2,7 @@ package myGameEngine;
 
 import ray.input.action.AbstractInputAction;
 import ray.rage.game.*;
-import a2.MyGame;
+import a3.MyGame;
 import net.java.games.input.Event;
 
 //An AbstractInputAction that quits the game.
