@@ -37,7 +37,6 @@ import ray.rage.rendersystem.gl4.GL4RenderSystem;
 import ray.rage.rendersystem.states.TextureState;
 import ray.rage.rendersystem.states.*;
 
-// VariableFrameRateGame gives a tightly coupled game loop. 
 public class MyGame extends VariableFrameRateGame //implements MouseListener, MouseMotionListener
 {
 	// to minimize variable allocation in update()
@@ -60,8 +59,8 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	ArrayList<String> prismGameRecord1 = new ArrayList<String>(6); // main prism group.
 	ArrayList<String> prismGameRecord2 = new ArrayList<String>(6); // main prism group.
 	
-	RotationController rotateController; 
-	CustomNodeController customController;
+	//RotationController rotateController; 
+	//CustomNodeController customController;
 	
 	private float[] planeLoc = new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
 	
@@ -83,20 +82,32 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	private boolean isClientConnected;
 	private ArrayList<UUID> gameObjectsToRemove;
 	
-    public MyGame(String serverAddr, int sPort, String placeHolder) {
+    public MyGame(String serverAddr, int sPort, String placeHolder)
+    {
         super();
         
         System.out.println("MyGame Initilization");
+        System.out.println("IP adress: " + serverAddr);
+        System.out.println("sPort: " + sPort);
+        System.out.println("UDP/TCP?: " + placeHolder);
         serverAddress = serverAddr;
         serverPort = sPort;
-        serverProtocol = ProtocolType.TCP; // Change to UDP
+        serverProtocol = ProtocolType.UDP; // Change to UDP
         
-        if (serverAddress == "")
-        {   serverAddress = "10.0.0.246";   } // Hrios's example local IP address. 
+		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
     }
 
-    public static void main(String[] args) {
-        Game game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
+    public static void main(String[] args) 
+    {
+    	Game game;
+    	if (args.length == 0)
+    	{   // a3.MyGame 10.0.0.246 6001 UDP. IP address, Port number, UDP/TCP
+    		game = new MyGame("10.0.0.246", Integer.parseInt("6001"), "UDP");  
+    	}
+    	else
+    	{
+            game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
+    	}
         try {
             game.startup();
             game.run();
@@ -243,8 +254,8 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         plightNode.attachObject(plight);
         plightNode.setLocalPosition(1.0f, 1.0f, 5.0f);
 
-        sm.addController(rotateController); // Adds controller to SM.
-        sm.addController(customController);
+        //sm.addController(rotateController); // Adds controller to SM.
+        //sm.addController(customController);
         
         createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
        
@@ -369,28 +380,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	    	}
 	    };
     }
-	
-	private void setupNetworking(float elpsTime)
-	{ 
-		gameObjectsToRemove = new ArrayList<UUID>();
-		isClientConnected = false;
-		try
-		{ 
-			protClient = new ProtocolClient(InetAddress.getByName(serverAddress), 
-					serverPort, serverProtocol, this);
-		} 
-		catch (UnknownHostException e)
-		{   e.printStackTrace();   } 
-		catch (IOException e) 
-		{   e.printStackTrace();   }
-		if (protClient == null)
-		{   System.out.println("missing protocol host");   }
-		else
-		{ // ask client protocol to send initial join message
-		  // to server, with a unique identifier for this client
-		  protClient.sendJoinMessage();
-		} 
-	}
 
 	// Game Logic Goes here. 
     @Override
@@ -421,8 +410,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		gamePlanetEnvironment();
 		
 		// Process Network Needs
-		setupNetworking(elapsTime/1000.0f);
-		
+		processNetworking(elapsTime/1000.0f);
 		
 		orbitController1.updateCameraPosition(); // Orbit Controller 
 		orbitController2.updateCameraPosition(); // Orbit Controller 
@@ -440,7 +428,30 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		}
 	}
     
-    // Random func.
+	private void setupNetworking(float elpsTime)
+	{ 
+		gameObjectsToRemove = new ArrayList<UUID>();
+		isClientConnected = false;
+		try
+		{ 
+			protClient = new ProtocolClient(InetAddress.getByName(serverAddress), 
+					serverPort, serverProtocol, this);
+		} 
+		catch (UnknownHostException e)
+		{   e.printStackTrace();   } 
+		catch (IOException e) 
+		{   e.printStackTrace();   }
+		if (protClient == null)
+		{   System.out.println("ProtocolClient Null - missing protocol host");   }
+		else
+		{ // ask client protocol to send initial join message
+		  // to server, with a unique identifier for this client
+			//System.out.println("Sending JOIN msg to server thru Protocol Client");
+		    protClient.sendJoinMessage();
+		} 
+	}
+    
+    // Constantly called to Process received packets & remove any players that have left.
     protected void processNetworking(float elapsTime)
     { 
     	SceneManager sm = getEngine().getSceneManager();
@@ -501,7 +512,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     				if (addScore != 0) // If there was contact then add rotation controllers.
     				{
     					planetGameRecord.add(objectName);
-    			    	rotateController.addNode(objectN);
+    			    	//rotateController.addNode(objectN);
     				}
     				else if (addScore2 != 0) // Means player 2 scored. 
     				{
@@ -600,7 +611,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		subPrism3N.attachObject(subPrism3);
 		
 		givenPrismGroupNode.setLocalPosition(x, y, z); // setLocalPosition(-1.5f, 0.6f, -1.5f);
-		customController.addNode(givenPrismGroupNode); // Sets the object to spin around Z-axis of middle obj.
+		//customController.addNode(givenPrismGroupNode); // Sets the object to spin around Z-axis of middle obj.
 	}
     
     private boolean determinePrismCollision(SceneNode objectN, SceneNode dolphinN) 
@@ -660,4 +671,28 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 
 		return (Vector3f) dolphinN.getLocalPosition();
 	}
+	
+	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
+	{ 
+    	SceneManager sm = getEngine().getSceneManager();
+
+		if (avatar != null)
+		{ 
+			Entity ghostE = sm.createEntity("ghost", "whatever.obj");
+			ghostE.setPrimitive(Primitive.TRIANGLES);
+			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(avatar.obtainGhostID().toString());
+			ghostN.attachObject(ghostE);
+			//ghostN.setLocalPosition(desired location...);
+			avatar.setGhostNode(ghostN);
+			avatar.setGhostEntity(ghostE);
+			//avatar.setPosition(node’s position... maybe redundant);
+		} 
+	}
+			
+	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)
+	{ 
+		if(avatar != null) 
+		{   gameObjectsToRemove.add(avatar.obtainGhostID());   }
+	}
+	
 }

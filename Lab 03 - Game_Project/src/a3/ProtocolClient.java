@@ -10,6 +10,15 @@ import ray.networking.client.GameConnectionClient;
 import ray.rml.Vector3;
 import ray.rml.Vector3f;
 
+/** Class ProtocolClient extends GameConnectionClient
+ *  Basically this class gives the GameWorld the ability to send info to 
+ *  the GameServer. In the Game class, it constantly calls this class's method
+ *  ProcessPackets which manages all the packets sent from client-to-server and vice versa.  
+ *  This class also handles Ghost Avatar management.
+ *  
+ *  @author Hector_Rios. 
+ * */
+
 public class ProtocolClient extends GameConnectionClient
 {
 	private MyGame game;
@@ -32,6 +41,8 @@ public class ProtocolClient extends GameConnectionClient
 		String strMessage = (String) msg;
 		String[] msgTokens = strMessage.split(",");
 		
+		System.out.println("ProtocolClient - message received: " + strMessage);
+		
 		if(msgTokens.length > 0)
 		{	
 			if(msgTokens[0].compareTo("join") == 0) // receive “join”
@@ -51,21 +62,30 @@ public class ProtocolClient extends GameConnectionClient
 				removeGhostAvatar(ghostID);
 			}
 			
-			if ((msgTokens[0].compareTo("dsfr") == 0 ) // receive “dsfr”
-					|| (msgTokens[0].compareTo("create")==0))
-			{ // format: create, remoteId, x,y,z or dsfr, remoteId, x,y,z
-				UUID ghostID = UUID.fromString(msgTokens[1]);
-				Vector3f ghostPosition = (Vector3f) Vector3f.createFrom(
-					Float.parseFloat(msgTokens[2]),
-					Float.parseFloat(msgTokens[3]),
-					Float.parseFloat(msgTokens[4]));
-			}
-			
-			createGhostAvatar(ghostID, ghostPosition); // Try/Catch was here.
-			
-			if(msgTokens[0].compareTo("wsds") == 0) // rec. “create…”
+			if (msgTokens[0].compareTo("dsfr") == 0 )// receive “dsfr”)
 			{ 
-				// etc….. 
+				// NA.
+			}
+						
+			if(msgTokens[0].compareTo("create") == 0) // rec. “create…”
+			{ 
+				// If given our ID back with a msg of creation.
+				// Then we do that. else it is a ghost avatar creation of another player.
+				if (msgTokens[1] == id.toString())
+				{
+					System.out.println("Create Self avatar here?");
+				}
+				else
+				{
+					// When sent a create, commits ghost creation.
+					UUID ghostID = UUID.fromString(msgTokens[1]);
+					Vector3f ghostPosition = (Vector3f) Vector3f.createFrom(
+						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[3]),
+						Float.parseFloat(msgTokens[4]));
+				
+					createGhostAvatar(ghostID, ghostPosition);
+				}
 			}
 			if(msgTokens[0].compareTo("wsds") == 0) // rec. “wants…”
 			{ 
@@ -78,13 +98,13 @@ public class ProtocolClient extends GameConnectionClient
 		}
 	}
 
-	private void createGhostAvatar(int ghostID2, Vector3f ghostPosition2) {
+	private void createGhostAvatar(UUID ghostID, Vector3f ghostPosition2) {
 		// Empty by Intention
 		System.out.println("CreateGhostAvatar function called ... ");
 		
 	}
 
-	private void removeGhostAvatar(UUID ghostID2) {
+	private void removeGhostAvatar(UUID ghostID) {
 		// Empty by Intention
 		System.out.println("RemoveGhostAvatar function called ... ");
 		
