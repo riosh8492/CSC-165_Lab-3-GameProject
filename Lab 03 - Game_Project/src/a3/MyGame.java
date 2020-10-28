@@ -102,7 +102,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	Game game;
     	if (args.length == 0)
     	{   // a3.MyGame 10.0.0.246 6001 UDP. IP address, Port number, UDP/TCP
-    		game = new MyGame("10.0.0.246", Integer.parseInt("6001"), "UDP");  
+    		game = new MyGame("10.0.0.246", Integer.parseInt("6002"), "UDP");  
     	}
     	else
     	{
@@ -444,8 +444,8 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		if (protClient == null)
 		{   System.out.println("ProtocolClient Null - missing protocol host");   }
 		else
-		{ // ask client protocol to send initial join message
-		  // to server, with a unique identifier for this client
+		{   // ask client protocol to send initial join message
+		    // to server, with a unique identifier for this client
 			//System.out.println("Sending JOIN msg to server thru Protocol Client");
 		    protClient.sendJoinMessage();
 		} 

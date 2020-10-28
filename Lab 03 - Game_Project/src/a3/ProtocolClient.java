@@ -35,6 +35,7 @@ public class ProtocolClient extends GameConnectionClient
 		this.ghostAvatars = new Vector<GhostAvatar>();
 	}
 	
+	// Messages Received from the Server.
 	@Override
 	protected void processPacket(Object msg)
 	{ 
@@ -56,18 +57,14 @@ public class ProtocolClient extends GameConnectionClient
 				{   game.setIsConnected(false);   }
 			}
 			
+			// Informs all clients with the name of a client who quit
 			if(msgTokens[0].compareTo("bye") == 0) // receive “bye”
 			{ // format: bye, remoteId
 				UUID ghostID = UUID.fromString(msgTokens[1]);
 				removeGhostAvatar(ghostID);
 			}
-			
-			if (msgTokens[0].compareTo("dsfr") == 0 )// receive “dsfr”)
-			{ 
-				// NA.
-			}
 						
-			if(msgTokens[0].compareTo("create") == 0) // rec. “create…”
+			if(msgTokens[0].compareTo("create") == 0) // Create ghost or avatar. 
 			{ 
 				// If given our ID back with a msg of creation.
 				// Then we do that. else it is a ghost avatar creation of another player.
@@ -87,10 +84,31 @@ public class ProtocolClient extends GameConnectionClient
 					createGhostAvatar(ghostID, ghostPosition);
 				}
 			}
-			if(msgTokens[0].compareTo("wsds") == 0) // rec. “wants…”
+			// Informs client that a remote client wants a local status update
+			if(msgTokens[0].compareTo("wantDetails") == 0) // rec. “wants…”
 			{ 
-				// etc….. 
+				// Server sent request to send own info to newly made client for ghost creation.
+				System.out.println("Remote Client wants this clients Details. Msg: " + strMessage);
+				if (msgTokens[1] != id.toString())
+				{
+					// Send a details for message based on ID. If ID is same, then ignore, else send.
+					// System.out.println("Client - sendDetailsForMessage: " + strMessage);
+					sendDetailsForMessage(msgTokens[1], game.getPlayerPosition());
+				}
 			}
+			
+			// Provides client with updated status of a remote avatar
+			// Update Ghost avatar for sender
+			if (msgTokens[0].compareTo("detailsFor") == 0 )// receive “dsfr”)
+			{ 
+				// Shouldn't send anything else, this is where client finally recieves info from 
+				// server about other clients. 
+				String[] pos = {msgTokens[2], msgTokens[3], msgTokens[4]}; 
+
+				updateGhostAvatar(msgTokens[1], pos);
+				System.out.println("Client - details for requested -> call sendDetailsForMessage");
+			}
+
 			if(msgTokens[0].compareTo("move") == 0) // rec. “move...”
 			{ 
 				// etc….. 
@@ -98,18 +116,7 @@ public class ProtocolClient extends GameConnectionClient
 		}
 	}
 
-	private void createGhostAvatar(UUID ghostID, Vector3f ghostPosition2) {
-		// Empty by Intention
-		System.out.println("CreateGhostAvatar function called ... ");
-		
-	}
-
-	private void removeGhostAvatar(UUID ghostID) {
-		// Empty by Intention
-		System.out.println("RemoveGhostAvatar function called ... ");
-		
-	}
-
+	// Client Responses to the Messages from the Server. 
 	public void sendJoinMessage() // format: join, localId
 	{ 
 		try
@@ -132,14 +139,47 @@ public class ProtocolClient extends GameConnectionClient
 	
 	public void sendByeMessage()
 	{ 
-		// etc….. 
+		try
+		{ 
+			String message = new String("bye," + id.toString());
+			sendPacket(message);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   } 
 	}
-	public void sendDetailsForMessage(UUID remId, Vector3 pos) // Pos = Vector3D
+	
+	// Returns a details-for request to the server for another client.
+	public void sendDetailsForMessage(String targetID, Vector3f pos) // Pos = Vector3D
 	{ 
-		// etc….. 
+		try
+		{ 
+			String message = new String("detailsFor," + targetID.toString());
+			message += ", " + id.toString();
+			message += "," + pos.x()+"," + pos.y() + "," + pos.z();
+			sendPacket(message);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   }
 	}
 	public void sendMoveMessage(Vector3 pos) // Pos = Vector3D
 	{ 
 		// etc….. 
+	}
+	
+	private void createGhostAvatar(UUID ghostID, Vector3f ghostPosition2) {
+		// Empty by Intention
+		System.out.println("CreateGhostAvatar function called ... ");
+	}
+	
+	private void updateGhostAvatar(String string, String[] pos) {
+		// Update specific ghost avatar.
+		System.out.println("Client must update specific ghost avatars. "); 
+		System.out.println("Ghost to Update: " + string);
+	}
+
+	private void removeGhostAvatar(UUID ghostID) {
+		// Empty by Intention
+		System.out.println("RemoveGhostAvatar function called ... ");
+		
 	}
 }
