@@ -5,11 +5,15 @@ package a3;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 
-import javax.swing.ImageIcon;
+import ray.networking.IGameConnection.ProtocolType;
+import java.util.UUID;
 
 import myGameEngine.*;
 import ray.input.GenericInputManager;
@@ -33,7 +37,6 @@ import ray.rage.rendersystem.gl4.GL4RenderSystem;
 import ray.rage.rendersystem.states.TextureState;
 import ray.rage.rendersystem.states.*;
 
-// VariableFrameRateGame gives a tightly coupled game loop. 
 public class MyGame extends VariableFrameRateGame //implements MouseListener, MouseMotionListener
 {
 	// to minimize variable allocation in update()
@@ -56,8 +59,8 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	ArrayList<String> prismGameRecord1 = new ArrayList<String>(6); // main prism group.
 	ArrayList<String> prismGameRecord2 = new ArrayList<String>(6); // main prism group.
 	
-	RotationController rotateController; 
-	CustomNodeController customController;
+	//RotationController rotateController; 
+	//CustomNodeController customController;
 	
 	private float[] planeLoc = new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
 	
@@ -72,39 +75,39 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	private Action yawNodeActionGP;
 	private Action pitchNodeActionGP;
 	
-    public MyGame() {
+	private String serverAddress;    // Needed Variables for Network Operation
+	private int serverPort;
+	private ProtocolType serverProtocol;
+	private ProtocolClient protClient;
+	private boolean isClientConnected;
+	private ArrayList<UUID> gameObjectsToRemove;
+	
+    public MyGame(String serverAddr, int sPort, String placeHolder)
+    {
         super();
-		System.out.println("\nPlayer One Controls: ");
-		System.out.println("Press SPACE to disable centering of Mouse");
-		System.out.println("Press ESCAPE to exit the Game.");
-		System.out.println("Press A/D to Move Left/Right");
-		System.out.println("Press W/S to Move Forward/Backward");
-		System.out.println("Press Left/Right Arrow keys to Yaw");
-		System.out.println("Press Up/Down Arrow keys to Pitch");
-		
-		System.out.println("\nPlayer One Orbit Camera Controls: ");
-		System.out.println("Press J/L to orbit camera around dolphin.");
-		System.out.println("Press I/K to zoom in/out camera at dolphin.");
-		System.out.println("Press U/O to elevate up/down the camera around dolphin.");
-		System.out.println("Motion Mouse Left/Right to orbit camera around dolphin.");
-		System.out.println("Use the mouse Wheel to zoom in/out camera at dolphin.");
-		System.out.println("Motion the Mouse Forward/Backward to elevate up/down the camera around dolphin.");
-		
-		System.out.println("\nPlayer Two Controls (Using the Gamepad/game Controller): ");
-		System.out.println("Use Left joyStick to move dolphin Forward/Backward vertically");
-		System.out.println("Use Left joyStick to move dolphin Left/Right horizontally");
-		System.out.println("Use Right joyStick to Pitch the dolphin vertically");
-		System.out.println("Use Right joyStick to Yaw the dolphin horizontally");
-		
-		System.out.println("\nPlayer Two Orbit Camera Controls: ");
-		System.out.println("Use Button 9 to exit out of the game.");
-		System.out.println("Use Button 1 and 2 to orbit camera around dolphin..");
-		System.out.println("Use Button 3 and 4 to zoom in/out camera at dolphin.");
-		System.out.println("Use Button 5 and 6 to elevate up/down the camera around dolphin..");
+        
+        System.out.println("MyGame Initilization");
+        System.out.println("IP adress: " + serverAddr);
+        System.out.println("sPort: " + sPort);
+        System.out.println("UDP/TCP?: " + placeHolder);
+        serverAddress = serverAddr;
+        serverPort = sPort;
+        serverProtocol = ProtocolType.UDP; // Change to UDP
+        
+		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
     }
 
-    public static void main(String[] args) {
-        Game game = new MyGame();
+    public static void main(String[] args) 
+    {
+    	Game game;
+    	if (args.length == 0)
+    	{   // a3.MyGame 10.0.0.246 6001 UDP. IP address, Port number, UDP/TCP
+    		game = new MyGame("10.0.0.246", 6001, "UDP");  
+    	}
+    	else
+    	{
+            game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
+    	}
         try {
             game.startup();
             game.run();
@@ -120,19 +123,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	@Override
 	protected void setupWindow(RenderSystem rs, GraphicsEnvironment ge) {
 		rs.createRenderWindow(new DisplayMode(1000, 700, 24, 60), false);
-	}
-	
-	// now we add setting up viewports in the window
-	@Override
-	protected void setupWindowViewports(RenderWindow rw)
-	{ 	
-		rw.addKeyListener(this);
-		Viewport topViewport = rw.getViewport(0);
-		topViewport.setDimensions(.51f, .01f, .99f, .49f); // B,L,W,H
-		topViewport.setClearColor(new Color(0.1f, 0.1f, 0.3f)); // was 1-7-7, p1 -> light blue
-		
-		Viewport botViewport = rw.createViewport(.01f, .01f, .99f, .49f);
-		botViewport.setClearColor(new Color(0.4f, 0.2f, 0.1f)); // p2 -> orange
 	}
 
     @Override
@@ -155,17 +145,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         myCameraN.attachObject(myCamera);
         myCamera.setMode('n'); // Set to Node Mode.
         myCamera.getFrustum().setFarClipDistance(1000.0f);
-        
-        // Camera 2 Set Up - GAME-PAD
-        myCamera2 = sm.createCamera("MainCamera2", Projection.PERSPECTIVE);
-        rw.getViewport(1).setCamera(myCamera2);
-        
-        myCamera2.setPo((Vector3f)Vector3f.createFrom(1.0f, 0.0f, 3.0f));
-        
-        myCameraN2 = rootNode.createChildSceneNode(myCamera2.getName() + "Node");
-        myCameraN2.attachObject(myCamera2);
-        myCamera2.setMode('n'); // Set to Node Mode.
-        myCamera2.getFrustum().setFarClipDistance(1000.0f);
     }
 
 	private void setupOrbitCamera(Engine eng, SceneManager sm) 
@@ -174,14 +153,8 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		SceneNode dolphinN = sm.getSceneNode("myDolphinNode");
 		SceneNode cameraN = sm.getSceneNode("MainCameraNode");
 		
-		SceneNode dolphin2N = sm.getSceneNode("myDolphin2Node");
-		SceneNode camera2N = sm.getSceneNode("MainCamera2Node");
-		
 		Camera camera = sm.getCamera("MainCamera"); // view port 0
 		orbitController1 = new Camera3Pcontroller(cameraN, dolphinN, "keyboard", im, renderSystem, renderWindow);
-		
-		Camera camera2 = sm.getCamera("MainCamera2"); // view port 1
-		orbitController2 = new Camera3Pcontroller(camera2, camera2N, dolphin2N, "gamepad", im);
 	}
     
     // Set up the GameWorld
@@ -192,10 +165,10 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	// Dolphin Group Node
     	SceneNode dolphinNodeGroup = 
     			sm.getRootSceneNode().createChildSceneNode("myDolphinNodeGroup");
-    	// Top Node that holds all custom prism generation
+    	// Custom Object Group Node
     	SceneNode prismNodeGroup = 
     			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");
-
+    	
     	    	
     	// Set Up Earth Object. 
     	Entity earthE = sm.createEntity("earthPlanet", "earth.obj");
@@ -205,7 +178,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	earthN.setLocalPosition(0.0f, 0.5f, -1.0f);
     	earthN.setLocalScale(0.1f, 0.1f, 0.1f);
 
-        // Set Up Dolphin for Player 1 ---
+        // Set Up Dolphin & Textures for Player 1 ---
 		Entity dolphinE = sm.createEntity("myDolphin", "dolphinHighPoly.obj");
         dolphinE.setPrimitive(Primitive.TRIANGLES);
         
@@ -217,17 +190,14 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         dolphinN.moveBackward(0.5f);
         dolphinN.attachObject(dolphinE); // Attach node to model entity
         
-        // Set Up Dolphin for Player 2 ---
-        Entity dolphin2E = sm.createEntity("myDolphin2", "dolphinHighPoly.obj");
-        dolphin2E.setPrimitive(Primitive.TRIANGLES);
-        
-        // Set dolphin2 Node to be child of dolphin group node.
-        SceneNode dolphin2N = dolphinNodeGroup.createChildSceneNode(dolphin2E.getName() + "Node");
-        dolphin2N.moveUp(0.5f);
-        dolphin2N.rotate(Degreef.createFrom(180.0f), dolphin2N.getLocalPosition()); // Trying to position the dolphin to face -z axis
-        dolphin2N.moveRight(0.8f);
-        dolphin2N.moveBackward(0.5f);
-        dolphin2N.attachObject(dolphin2E); // Attach node to model entity
+        TextureManager tm = eng.getTextureManager();
+        Texture mainTexture = tm.getAssetByPath("Dolphin_HighPolyUV.png");
+        RenderSystem rs = sm.getRenderSystem();
+        TextureState state = (TextureState) 
+        		rs.createRenderState(RenderState.Type.TEXTURE);
+        state.setTexture(mainTexture);
+        dolphinE.setRenderState(state);	
+    	
         
         // Set Up Control Inputs
     	setupInputs(); // new function (defined below) to set up input actions
@@ -251,19 +221,12 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         plightNode.attachObject(plight);
         plightNode.setLocalPosition(1.0f, 1.0f, 5.0f);
 
-        sm.addController(rotateController); // Adds controller to SM.
-        sm.addController(customController);
+        //sm.addController(rotateController); // Adds controller to SM.
+        //sm.addController(customController);
         
         createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
        
-        // Texture Code -------------------------- 
-        TextureManager tm = eng.getTextureManager();
-        Texture mainTexture = tm.getAssetByPath("Dolphin_HighPolyUV.png");
-        RenderSystem rs = sm.getRenderSystem();
-        TextureState state = (TextureState) 
-        		rs.createRenderState(RenderState.Type.TEXTURE);
-        state.setTexture(mainTexture);
-        dolphinE.setRenderState(state);
+        // Texture Code, Floor Creation, etc -------------------------- 
         
         // Floor Creation 
         // Set Up Floor Manual Object Plane
@@ -290,22 +253,22 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	    int i;													 // Loop count.
 	    
 	    SceneNode p1DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-	    SceneNode p2DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphin2Node");
+	    //SceneNode p2DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphin2Node");
 	    
     	// build some action objects for doing things in response to user input
-    	quitGameAction = new QuitGameAction(this);
+    	quitGameAction = new QuitGameAction(this, protClient);
 	    
 	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this);
-	    moveFrontBackActionGP = new MoveFrontBackAction(p2DolphinNode, this); // movement controls for dolphin 2. 
+	    //moveFrontBackActionGP = new MoveFrontBackAction(p2DolphinNode, this); // movement controls for dolphin 2. 
 	    
 	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this);
-	    moveLeftRightActionGP = new MoveLeftRightAction(p2DolphinNode, this);
+	    //moveLeftRightActionGP = new MoveLeftRightAction(p2DolphinNode, this);
 	    		
 	    yawNodeAction = new MoveYawAction(p1DolphinNode, this);
-	    yawNodeActionGP = new MoveYawAction(p2DolphinNode, this);
+	    //yawNodeActionGP = new MoveYawAction(p2DolphinNode, this);
 	    
 	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this);
-	    pitchNodeActionGP = new MovePitchAction(p2DolphinNode, this);
+	    //pitchNodeActionGP = new MovePitchAction(p2DolphinNode, this);
 	    
 	    for (i = 0; i < controllers.size(); i++)
 	    {
@@ -341,7 +304,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		 	    		net.java.games.input.Component.Identifier.Key.RIGHT,
 		 	    		yawNodeAction,
 		 	    		InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-	    	    
 	    	    im.associateAction(inputComponent,
 		 	    		net.java.games.input.Component.Identifier.Key.UP,
 		 	    		pitchNodeAction,
@@ -353,7 +315,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	    	}
 	    	else if (inputComponent.getType() == Controller.Type.GAMEPAD || 
 	    			 inputComponent.getType() == Controller.Type.STICK) 
-	    	{   
+	    	{   /*// Remove Game-Pad funcitons for now. 
 	    		im.associateAction(inputComponent,
 		 	    		net.java.games.input.Component.Identifier.Button._9,
 		 	    		quitGameAction,
@@ -374,6 +336,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		 	    		net.java.games.input.Component.Identifier.Axis.RX,
 		 	    		yawNodeActionGP,
 		 	    		InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+		 	    //*/
 	    	}
 	    };
     }
@@ -384,8 +347,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     {
     	int p1ViewX = renderWindow.getViewport(0).getActualLeft(), 
     		p1ViewY = renderWindow.getViewport(0).getActualBottom();
-    	int p2ViewX = renderWindow.getViewport(1).getActualLeft(), 
-        	p2ViewY = renderWindow.getViewport(1).getActualBottom();
     	
 		// build and set HUD
 		rs = (GL4RenderSystem) engine.getRenderSystem();
@@ -395,23 +356,26 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		counterStr = Integer.toString(counter);
 		
 		dispStr = "Time = " + elapsTimeStr + ".  Player 1 Score = " + p1Score;
-		rs.setHUD2(dispStr, p1ViewX, p1ViewY); //rs.setHUD2(dispStr, 15, 15);
-		
-		dispStr = "Time = " + elapsTimeStr + ". Player 2 Score = " + p2Score;
-		rs.setHUD(dispStr, p2ViewX, p2ViewY); //rs.setHUD(dispStr, 15, 345);
+		rs.setHUD(dispStr, p1ViewX, p1ViewY); //rs.setHUD2(dispStr, 15, 15);
 		
 		// tell the input manager to process the inputs
 		im.update(elapsTime);
 		
-		// Go through game objects and manage game count.
-		gamePlanetEnvironment();
+		gamePlanetEnvironment();                 // Go through game objects and manage game count.
 		
-		orbitController1.updateCameraPosition(); // Orbit Controller 
-		orbitController2.updateCameraPosition(); // Orbit Controller 
-				
+		processNetworking(elapsTime/1000.0f);    // Process Network Needs
+		
+		orbitController1.updateCameraPosition(); // Updates Orbit Controller 
+		
+		generateDeltaTime(elapsTime/1000.0f);    // Updates the player's elapsed time rate for movement.
+	}
+    
+    // Updates the player's elapsed time rate for movement.
+	private void generateDeltaTime(float currentTime) 
+	{
 		if (timeCount == false) // Record the initial time
 		{
-			time1 = elapsTime/1000.0f;
+			time1 = currentTime;
 			timeCount = true;
 		}
 		else if (timeCount == true) // Determine the time passed between updates.
@@ -421,6 +385,48 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 			timeCount = false;
 		}
 	}
+
+	private void setupNetworking(float elpsTime)
+	{ 
+		gameObjectsToRemove = new ArrayList<UUID>();
+		isClientConnected = false;
+		try
+		{ 
+			protClient = new ProtocolClient(InetAddress.getByName(serverAddress), 
+					serverPort, serverProtocol, this);
+		} 
+		catch (UnknownHostException e)
+		{   e.printStackTrace();   } 
+		catch (IOException e) 
+		{   System.out.println("IO Exception. "); e.printStackTrace();   }
+		if (protClient == null)
+		{   System.out.println("ProtocolClient Null - missing protocol host");   }
+		else
+		{   // ask client protocol to send initial join message
+		    // to server, with a unique identifier for this client
+			System.out.println("Sending JOIN msg to server thru Protocol Client");
+		    protClient.sendJoinMessage();
+		} 
+	}
+    
+    // Constantly called to Process received packets & remove any players that have left.
+    protected void processNetworking(float elapsTime)
+    { 
+    	SceneManager sm = getEngine().getSceneManager();
+    	
+    	// Process packets received by the client from the server
+    	if (protClient != null)
+    	{   protClient.processPackets();   }
+    	
+    	// remove ghost avatars for players who have left the game
+    	Iterator<UUID> it = gameObjectsToRemove.iterator();
+    
+	    while(it.hasNext())
+	    { 
+	    	sm.destroySceneNode(it.next().toString());
+	    }
+	    gameObjectsToRemove.clear();
+    }
     
 	// Manages the Game rules such as point increase when in C mode.
     private void gamePlanetEnvironment()
@@ -428,7 +434,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	SceneManager sm = getEngine().getSceneManager();
     	
     	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-    	SceneNode dolphinN2 = getEngine().getSceneManager().getSceneNode("myDolphin2Node");
 
     	String objectName;
     	Iterable<SceneNode> sceneWorld = sm.getSceneNodes(); // Get a collection of Scene objects.
@@ -448,27 +453,20 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     			{
     				// May need to change this collision detection for other objects. 
     				distanceP1 = returnDistance((Vector3f) dolphinN.getLocalPosition(), (Vector3f) objectN.getLocalPosition());
-    				distanceP2 = returnDistance((Vector3f) dolphinN2.getLocalPosition(), (Vector3f) objectN.getLocalPosition());
     				
     				if (objectName.contains("earth"))
     				{
     					addScore = (Math.abs(distanceP1) < earthRadius) ? 10 : 0; 
-        				addScore2 = (Math.abs(distanceP2) < earthRadius) ? 10 : 0;
     				}
     				else
     				{
     					addScore = (Math.abs(distanceP1) < planetRadius) ? 10 : 0; 
-        				addScore2 = (Math.abs(distanceP2) < planetRadius) ? 10 : 0;
     				}
     				//vController
     				if (addScore != 0) // If there was contact then add rotation controllers.
     				{
     					planetGameRecord.add(objectName);
-    			    	rotateController.addNode(objectN);
-    				}
-    				else if (addScore2 != 0) // Means player 2 scored. 
-    				{
-    					planetGameRecord.add(objectName);
+    			    	//rotateController.addNode(objectN);
     				}
     				
     				p1Score += addScore;
@@ -488,17 +486,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     				// Return dolphin to start of map.
     				dolphinN.setLocalPosition(1.0f, 0.6f, 1.5f);
         		}
-    			if (determinePrismCollision(objectN, dolphinN2))
-    			{
-    				if (!prismGameRecord2.contains(objectName)) // If not already recorded.
-    				{
-    					prismGameRecord2.add(objectName); // Add to hit places. 
-    					p2Score -= 10;                    // Reduce score based on first time collision.
-    				}
-    				// Return dolphin to start of map.
-    				dolphinN2.setLocalPosition(-1.0f, 0.6f, 1.5f);
-    			}
-
     		}
     	}
     }
@@ -563,7 +550,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		subPrism3N.attachObject(subPrism3);
 		
 		givenPrismGroupNode.setLocalPosition(x, y, z); // setLocalPosition(-1.5f, 0.6f, -1.5f);
-		customController.addNode(givenPrismGroupNode); // Sets the object to spin around Z-axis of middle obj.
+		//customController.addNode(givenPrismGroupNode); // Sets the object to spin around Z-axis of middle obj.
 	}
     
     private boolean determinePrismCollision(SceneNode objectN, SceneNode dolphinN) 
@@ -605,4 +592,57 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		// Returns the limit of dolphin movement.
 		return planeLoc;
 	}
+
+	// Network Used Function - Connection Status Setter*
+	public void setIsConnected(boolean b) 
+	{
+		// Info returned from the UDP Client manager.
+		isClientConnected = b;
+	}
+
+	// * Assuming we are making a one view person game with networking, 
+	// There will be only consistent player to refer to .
+	// For now, I'm passing localDolphin pos. 
+	public Vector3f getPlayerPosition() 
+	{
+		// return DolphinPos.
+    	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
+
+		return (Vector3f) dolphinN.getLocalPosition();
+	}
+	
+	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
+	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
+	{ 
+    	SceneManager sm = getEngine().getSceneManager();
+
+		if (avatar != null)
+		{ 
+			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "dolphinHighPoly.obj");
+			ghostE.setPrimitive(Primitive.TRIANGLES);
+			
+			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
+			ghostN.attachObject(ghostE);
+			ghostN.setLocalPosition(avatar.obtainGhostPosition());
+			avatar.setGhostNode(ghostN);
+			avatar.setGhostEntity(ghostE);
+		} 
+	}
+	
+	// Searches and updates the local ghost avatar based on given info. 
+	public void updateGhostAvatar(UUID ghostID, Vector3f newPos)
+	{
+    	SceneManager sm = getEngine().getSceneManager();
+		String givenID = ghostID.toString();
+    	SceneNode oldGhost = sm.getSceneNode("Ghost_ID:" + givenID + ":Node");
+    	
+    	oldGhost.setLocalPosition(newPos); // Set node's world position 
+	}
+			
+	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)
+	{ 
+		if(avatar != null) 
+		{   gameObjectsToRemove.add(avatar.obtainGhostID());   }
+	}
+	
 }

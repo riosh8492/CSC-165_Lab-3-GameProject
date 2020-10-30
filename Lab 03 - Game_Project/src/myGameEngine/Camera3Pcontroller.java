@@ -100,6 +100,10 @@ public class Camera3Pcontroller// implements MouseListener, MouseMotionListener,
 		updateCameraPosition();
 	}
 
+	public Camera3Pcontroller(Camera cam, SceneNode camN, SceneNode playerAvatar) {
+		// Player Class related constructor
+	}
+
 	// Updates camera position: computes azimuth, elevation, and distance
 	// relative to the target in spherical coordinates, then converts those
 	// to world Cartesian coordinates and setting the camera position

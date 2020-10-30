@@ -3,7 +3,8 @@ package myGameEngine;
 import ray.input.action.AbstractInputAction;
 import ray.rage.scene.*;
 import ray.rml.*;
-import a2.MyGame;
+import a3.MyGame;
+import a3.ProtocolClient;
 import net.java.games.input.Event;
 
 public class MoveFrontBackAction extends AbstractInputAction
@@ -12,12 +13,22 @@ public class MoveFrontBackAction extends AbstractInputAction
 	private SceneNode localDolphinNode = null;
 	private float givenTime = 0.0f;
 	private float [] givenPlaneLoc; 
+	private ProtocolClient protClient;
 	
 	public MoveFrontBackAction(SceneNode dolphinNode, MyGame givenGame)
 	{
 		localDolphinNode = dolphinNode;
 		localGame = givenGame; // Purpose: to obtain last elapsed time float via func in MyGame
 		givenPlaneLoc = localGame.obtainPlaneLoc(); 
+	}
+	
+	// Network Constructor
+	public MoveFrontBackAction(SceneNode givenNode, MyGame givenGame, ProtocolClient p)
+	{
+		localDolphinNode = givenNode;
+		localGame = givenGame; // Purpose: to obtain last elapsed time float via func in MyGame
+		givenPlaneLoc = localGame.obtainPlaneLoc(); 
+		protClient = p;
 	}
 	
 	// Handles event where controller is acting in node mode. 
@@ -77,36 +88,6 @@ public class MoveFrontBackAction extends AbstractInputAction
 		
 	}
 	
-	public void moveOperation(float timeDeltaPos, boolean isFrontBack)
-	{
-		// Rule: NewLoc = CurrentLoc + (ViewDirVector * moveAmount)
-    	//SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-    	float delta = 0.7f; // Speed of change
-    	    	
-    	Vector3f v = (Vector3f) localDolphinNode.getLocalForwardAxis(); 
-    	Vector3f p = (Vector3f) localDolphinNode.getLocalPosition();
-    	
-    	Vector3f p1 = (Vector3f) Vector3f.createFrom(
-    			timeDeltaPos*delta*v.x(), 
-    			timeDeltaPos*delta*v.y(), 
-    			timeDeltaPos*delta*v.z());
-    	Vector3f p2 = p; // Set to original position till change.
-
-    	if(isWithinBounds(p1))
-    	{
-	    	if (isFrontBack) // input > 0.0f
-			{
-	    		p2 = (Vector3f) p.add((Vector3) p1); // Node movement
-			}
-	    	else             // input < 0.0f
-	    	{
-	    		p2 = (Vector3f) p.sub((Vector3)p1);
-	    	}
-	    	
-	    	localDolphinNode.setLocalPosition(p2);
-    	}
-	}
-	
 	public boolean isWithinBounds(Vector3f givenNewPos)
 	{
 		float getX = givenNewPos.x(), 
@@ -141,6 +122,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 		{
 			givenTime = localGame.obtainTime1();
 			nodeModeAction(time/1000.0f, e); 
+			//protClient.sendMoveMessage(localDolphinNode.getWorldPosition()); // Network
 		}
 		
 	}

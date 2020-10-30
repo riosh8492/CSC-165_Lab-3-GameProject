@@ -1,4 +1,4 @@
-package a2;
+package a3;
 
 import ray.rage.scene.*;
 import ray.rml.*;
@@ -88,22 +88,22 @@ public class Player
    
    public void moveLeft(float time, float mod)
    {
-	   float moveSpd = playerSpeed * time * mod;      
-       Matrix3 matRot = Matrix3f.createRotationFrom(Degreef.createFrom(moveSpd * rotationMod), orbitController.getWorldUpVec());
-       playerAvatar.setLocalRotation(matRot.mult(playerAvatar.getWorldRotation()));
+	   //float moveSpd = playerSpeed * time * mod;      
+       //Matrix3 matRot = Matrix3f.createRotationFrom(Degreef.createFrom(moveSpd * rotationMod), orbitController.getWorldUpVec());
+       //playerAvatar.setLocalRotation(matRot.mult(playerAvatar.getWorldRotation()));
        
-       orbitController.updateCameraAzimuth(Degreef.createFrom(moveSpd * rotationMod).valueDegrees());
+       //orbitController.updateCameraAzimuth(Degreef.createFrom(moveSpd * rotationMod).valueDegrees());
        orbitController.updateCameraPosition();
    }
    
    public void moveRight(float time, float mod)
    {
-	   float moveSpd = -(playerSpeed * time * mod);     
-       Matrix3 matRot = Matrix3f.createRotationFrom(Degreef.createFrom(moveSpd * rotationMod), orbitController.getWorldUpVec());
-       playerAvatar.setLocalRotation(matRot.mult(playerAvatar.getWorldRotation()));  
+	   //float moveSpd = -(playerSpeed * time * mod);     
+       //Matrix3 matRot = Matrix3f.createRotationFrom(Degreef.createFrom(moveSpd * rotationMod), orbitController.getWorldUpVec());
+       //playerAvatar.setLocalRotation(matRot.mult(playerAvatar.getWorldRotation()));  
        
-       orbitController.updateCameraAzimuth(Degreef.createFrom(moveSpd * rotationMod).valueDegrees());
-       orbitController.updateCameraPosition();
+       //orbitController.updateCameraAzimuth(Degreef.createFrom(moveSpd * rotationMod).valueDegrees());
+       //orbitController.updateCameraPosition();
        
    }
    
@@ -125,7 +125,7 @@ public class Player
       		 rotAmount = 0.0f; 
       	 }      
       }       
-      orbitController.updateCameraAzimuth(rotAmount);  
+      //orbitController.updateCameraAzimuth(rotAmount);  
       orbitController.updateCameraPosition();
    }
    
@@ -143,11 +143,11 @@ public class Player
          else          
       	   zoomAmount = 0.0f;      
       }
-      if(orbitController.getRadias() + zoomAmount <= 8.0f  && orbitController.getRadias() + zoomAmount > 0.5f)
-      {
-	     orbitController.updateRadias(zoomAmount);		  
-	     orbitController.updateCameraPosition();
-      }
+      //if(orbitController.getRadias() + zoomAmount <= 8.0f  && orbitController.getRadias() + zoomAmount > 0.5f)
+      //{
+	  //   orbitController.updateRadias(zoomAmount);		  
+	  //   orbitController.updateCameraPosition();
+      //}
    }
    
    public void orbitElevation(float eventVal)
@@ -168,8 +168,8 @@ public class Player
       		liftAmount = 0.0f; 
       	 }      
       } 
-	   orbitController.updateElevation(liftAmount);
-	   orbitController.updateCameraPosition();
+	   //orbitController.updateElevation(liftAmount);
+	   //orbitController.updateCameraPosition();
    }
    
 }
