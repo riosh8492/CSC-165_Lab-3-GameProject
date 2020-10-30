@@ -28,7 +28,9 @@ public class NetworkingServer
 				//thisTCPServer = new GameServerTCP(serverPort);
 			}
 			else
-			{   thisUDPServer = new GameServerUDP(serverPort);   } 
+			{   thisUDPServer = new GameServerUDP(serverPort); 
+				//System.out.println("UDP Server IP?: " + thisUDPServer.getLocalInetAddress());
+			} 
 		}
 		catch (IOException e)
 		{   e.printStackTrace();   } 
@@ -42,5 +44,10 @@ public class NetworkingServer
 			NetworkingServer app = 
 					new NetworkingServer(Integer.parseInt(args[0]), args[1]);
 		} 
+		else 
+		{
+			NetworkingServer app = 
+					new NetworkingServer(6001, "UDP");
+		}
 	} // Main End.
 }

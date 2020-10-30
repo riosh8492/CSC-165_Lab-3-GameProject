@@ -3,6 +3,7 @@ package myGameEngine;
 import ray.input.action.AbstractInputAction;
 import ray.rage.game.*;
 import a3.MyGame;
+import a3.ProtocolClient;
 import net.java.games.input.Event;
 
 //An AbstractInputAction that quits the game.
@@ -13,10 +14,12 @@ import net.java.games.input.Event;
 public class QuitGameAction extends AbstractInputAction 
 {
 	private MyGame localGame;
+	private ProtocolClient protClient;
 	
-	public QuitGameAction(MyGame givenGame)
+	public QuitGameAction(MyGame givenGame, ProtocolClient p)
 	{
 		localGame = givenGame;
+		protClient = p;
 	}
 
 	@Override
@@ -24,6 +27,8 @@ public class QuitGameAction extends AbstractInputAction
 	{
 		System.out.println("shutdown requested");
 		localGame.setState(Game.State.STOPPING);
+		
+		protClient.sendByeMessage();
 	}
 
 }

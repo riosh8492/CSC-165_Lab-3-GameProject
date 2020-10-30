@@ -5,7 +5,6 @@ import java.net.InetAddress;
 import java.util.UUID;
 import java.util.Vector;
 
-import myGameEngine.GhostAvatar;
 import ray.networking.client.GameConnectionClient;
 import ray.rml.Vector3;
 import ray.rml.Vector3f;
@@ -24,8 +23,9 @@ public class ProtocolClient extends GameConnectionClient
 	private MyGame game;
 	private UUID id;
 	private Vector<GhostAvatar> ghostAvatars;
-	private int ghostID;
-	private Vector3f ghostPosition; 
+	private GhostAvatar ghostHolder; 
+	private int gAvatarID;
+	private Vector3f gAvatarPosition; 
 	
 	public ProtocolClient(InetAddress remAddr, int remPort, ProtocolType pType, MyGame givenGame) throws IOException
 	{
@@ -33,6 +33,7 @@ public class ProtocolClient extends GameConnectionClient
 		this.game = givenGame;
 		this.id = UUID.randomUUID();
 		this.ghostAvatars = new Vector<GhostAvatar>();
+		System.out.println("Client ID: " + id);
 	}
 	
 	// Messages Received from the Server.
@@ -57,7 +58,7 @@ public class ProtocolClient extends GameConnectionClient
 				{   game.setIsConnected(false);   }
 			}
 			
-			// Informs all clients with the name of a client who quit
+			// Informs this client to destroy given ghost ID.
 			if(msgTokens[0].compareTo("bye") == 0) // receive “bye”
 			{ // format: bye, remoteId
 				UUID ghostID = UUID.fromString(msgTokens[1]);
@@ -88,11 +89,9 @@ public class ProtocolClient extends GameConnectionClient
 			if(msgTokens[0].compareTo("wantDetails") == 0) // rec. “wants…”
 			{ 
 				// Server sent request to send own info to newly made client for ghost creation.
-				System.out.println("Remote Client wants this clients Details. Msg: " + strMessage);
 				if (msgTokens[1] != id.toString())
 				{
 					// Send a details for message based on ID. If ID is same, then ignore, else send.
-					// System.out.println("Client - sendDetailsForMessage: " + strMessage);
 					sendDetailsForMessage(msgTokens[1], game.getPlayerPosition());
 				}
 			}
@@ -101,11 +100,14 @@ public class ProtocolClient extends GameConnectionClient
 			// Update Ghost avatar for sender
 			if (msgTokens[0].compareTo("detailsFor") == 0 )// receive “dsfr”)
 			{ 
-				// Shouldn't send anything else, this is where client finally recieves info from 
-				// server about other clients. 
-				String[] pos = {msgTokens[2], msgTokens[3], msgTokens[4]}; 
+				// Getting details to either create ghost or update current ghost 
+				UUID ghostID = UUID.fromString(msgTokens[1]);
+				Vector3f pos = (Vector3f) Vector3f.createFrom(
+						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[3]),
+						Float.parseFloat(msgTokens[4]));
 
-				updateGhostAvatar(msgTokens[1], pos);
+				updateGhostAvatar(ghostID, pos);
 				System.out.println("Client - details for requested -> call sendDetailsForMessage");
 			}
 
@@ -139,6 +141,7 @@ public class ProtocolClient extends GameConnectionClient
 	
 	public void sendByeMessage()
 	{ 
+		System.out.println("Sending BYE msg to server.");
 		try
 		{ 
 			String message = new String("bye," + id.toString());
@@ -151,10 +154,11 @@ public class ProtocolClient extends GameConnectionClient
 	// Returns a details-for request to the server for another client.
 	public void sendDetailsForMessage(String targetID, Vector3f pos) // Pos = Vector3D
 	{ 
+		System.out.println("Client. Received WANTS-DEATILS Msg. Sending DETAILS-FOR Msg.");
 		try
 		{ 
 			String message = new String("detailsFor," + targetID.toString());
-			message += ", " + id.toString();
+			message += "," + id.toString();
 			message += "," + pos.x()+"," + pos.y() + "," + pos.z();
 			sendPacket(message);
 		}
@@ -166,15 +170,45 @@ public class ProtocolClient extends GameConnectionClient
 		// etc….. 
 	}
 	
-	private void createGhostAvatar(UUID ghostID, Vector3f ghostPosition2) {
-		// Empty by Intention
-		System.out.println("CreateGhostAvatar function called ... ");
+	private void createGhostAvatar(UUID ghostID, Vector3f ghostPos) 
+	{
+		System.out.println("Client. CREATE Msg received. Now calling -> CreateGhostAvatar function");
+		// Basically record ghost creation and then call game to create ghost based on given Entity & Node.
+		
+		ghostHolder = new GhostAvatar(ghostID, ghostPos); // Create ghost avatar instance. 
+		ghostAvatars.add(ghostHolder);					  // Record ghost avatar. 
+		
+		try 
+		{   game.addGhostAvatarToGameWorld(ghostHolder);   } 
+		catch (IOException e) 
+		{   e.printStackTrace();   }		
 	}
 	
-	private void updateGhostAvatar(String string, String[] pos) {
+	private void updateGhostAvatar(UUID givenID, Vector3f updatePos) {
 		// Update specific ghost avatar.
-		System.out.println("Client must update specific ghost avatars. "); 
-		System.out.println("Ghost to Update: " + string);
+		System.out.println("Client. Update certain local ghost avatar. " + givenID); 
+		int i =0, recordLength = ghostAvatars.size();
+		GhostAvatar tempGhost;
+		
+		for (i = 0; i < recordLength; i++)
+		{
+			tempGhost = ghostAvatars.get(i);
+			if (tempGhost.obtainGhostID() == givenID)
+			{
+				// Update Ghost object's position.
+				tempGhost.setGhostPosition(updatePos);
+				
+				// Update's Ghost Node's game world pos.
+				game.updateGhostAvatar(tempGhost.obtainGhostID(), updatePos);
+				
+				break; // End loop. 
+			}
+		}
+		
+		// If function still going, then this client does not have an instance of the ghost avatar. Thus we have to make one.
+		System.out.println("----> Creating ghost avatar in details for as the ghost the details are for isn't existant");
+		createGhostAvatar(givenID, updatePos);
+		
 	}
 
 	private void removeGhostAvatar(UUID ghostID) {

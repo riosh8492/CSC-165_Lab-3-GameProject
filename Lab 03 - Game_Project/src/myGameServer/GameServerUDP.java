@@ -44,10 +44,18 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					IClientInfo ci;	
 					ci = getServerSocket().createClientInfo(senderIP, sndPort);
 					UUID clientID = UUID.fromString(msgTokens[1]);
-					addClient(ci, clientID);
-					sendJoinedMessage(clientID, true);
 					
-					recordJoinedClient(clientID.toString(), senderIP.toString()); 
+					if (validateClient(senderIP))
+					{
+						addClient(ci, clientID);
+						sendJoinedMessage(clientID, true);
+						
+						recordJoinedClient(clientID.toString(), senderIP.toString()); 
+					}
+					else
+					{
+						System.out.println("Client IP Address is already in Use.");
+					}
 				}
 				catch (IOException e)
 				{ 
@@ -93,6 +101,21 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		}
 	} // Function end. 
 	
+	private boolean validateClient(InetAddress senderIP) 
+	{
+		// This goes through the client record and checks to see if IP address is not already there. 
+		int i, recordLength = clientAddressList.length;
+		
+		for (i=0; i < recordLength; i++)
+		{
+			if (clientAddressList[i][1] == senderIP.toString())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	// Record given client information in records.
 	private void recordJoinedClient(String ID, String IP_Address) 
 	{
@@ -105,8 +128,8 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			{
 				clientAddressList[i][0] = ID;
 				clientAddressList[i][1] = IP_Address;
-				System.out.println("Client UUID & IP_Address Saved ... Max 10 ppl...");
-				System.out.println(recordLength - i + " Spots Left.");
+				//System.out.println("Client UUID & IP_Address Saved ... Max 10 ppl...");
+				//System.out.println(recordLength - i + " Spots Left.");
 				break; 
 			}
 		}
