@@ -15,6 +15,10 @@ import java.util.Iterator;
 import ray.networking.IGameConnection.ProtocolType;
 import java.util.UUID;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
 import myGameEngine.*;
 import ray.input.GenericInputManager;
 import ray.input.InputManager;
@@ -47,31 +51,31 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	float time1 = 0.0f, time2 = 0.0f;
 	boolean timeCount = false;
 	float elapsedTimeHolder = 0.0f;
-	Camera myCamera, myCamera2;
-	SceneNode myCameraN, myCameraN2;
+	Camera myCamera;
+	SceneNode myCameraN;
 	
-	private int p1Score = 0, p2Score = 0; // Scores to be displayed
+	private int p1Score = 0; // Scores to be displayed
 
 	private RenderWindow renderWindow;
 	private RenderSystem renderSystem;
 
 	ArrayList<String> planetGameRecord = new ArrayList<String>(10);
 	ArrayList<String> prismGameRecord1 = new ArrayList<String>(6); // main prism group.
-	ArrayList<String> prismGameRecord2 = new ArrayList<String>(6); // main prism group.
 	
 	//RotationController rotateController; 
 	//CustomNodeController customController;
 	
-	private float[] planeLoc = new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
+	private float[] planeLoc; //= new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
+	private int dummy; 
 	
 	// Input-Action Management
 	private InputManager im; // input manager of device input
-	private Action quitGameAction, switchModeAction; // Action objs to be tied to certain button components.
-	private Action moveFrontBackAction, moveFrontBackActionGP;  
-	private Action moveLeftRightAction, moveLeftRightActionGP; // Camera C Mode movement.
+	private Action quitGameAction; // Action objs to be tied to certain button components.
+	private Action moveFrontBackAction;  
+	private Action moveLeftRightAction; // Camera C Mode movement.
 	private Action yawNodeAction, pitchNodeAction;       // Camera C move Pitch/Yaw
 	
-	private Camera3Pcontroller orbitController1, orbitController2;
+	private Camera3Pcontroller orbitController1;
 	private Action yawNodeActionGP;
 	private Action pitchNodeActionGP;
 	
@@ -95,6 +99,9 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         serverProtocol = ProtocolType.UDP; // Change to UDP
         
 		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
+    	
+    	// Begin Scripting variable initialization.
+		setupScriptVariables("src\\a3\\script01.js");
     }
 
     public static void main(String[] args) 
@@ -108,6 +115,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	{
             game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
     	}
+    	
         try {
             game.startup();
             game.run();
@@ -117,6 +125,44 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
             game.shutdown();
             game.exit();
         }
+    }
+    
+	private void setupScriptVariables(String filepath)
+	{
+    	ScriptEngineManager factory = new ScriptEngineManager();
+		String scriptFileName = "src\\a3\\scriptGameInit.js";
+		
+		// get the JavaScript engine
+		ScriptEngine jsEngine = factory.getEngineByName("js");
+		// run the script
+		executeScript(jsEngine, scriptFileName);
+		// Set variables to initial values via script. 
+		elapsTime	      = (int) jsEngine.get("elapsTime");
+		counter   	      = (int) jsEngine.get("counter");
+		playerScore       = (int) jsEngine.get("playerScore"); 
+		tempPlayerScore   = (int) jsEngine.get("tempPlayerScore");
+		time1     		  = (int) jsEngine.get("time1"); time2 = (int) jsEngine.get("time2");
+		timeCount 		  = (boolean) jsEngine.get("timeCount");
+		elapsedTimeHolder = (int) jsEngine.get("elapsedTimeHolder");
+	}
+
+    
+    private void executeScript(ScriptEngine engine, String scriptFileName)
+    {
+	    try
+	    { 
+	    	FileReader fileReader = new FileReader(scriptFileName);
+	    	engine.eval(fileReader); //execute the script statements in the file
+	    	fileReader.close();
+	    }
+	    catch (FileNotFoundException e1)
+	    {   System.out.println(scriptFileName + " not found " + e1);   }
+	    catch (IOException e2)
+	    {   System.out.println("IO problem with " + scriptFileName + e2);   }
+	    catch (ScriptException e3)
+	    {   System.out.println("ScriptException in " + scriptFileName + e3);   }
+	    catch (NullPointerException e4)
+	    {   System.out.println ("Null ptr exception in " + scriptFileName + e4);   }
     }
 	
     // Auto-called by Rage
@@ -258,16 +304,16 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	// build some action objects for doing things in response to user input
     	quitGameAction = new QuitGameAction(this, protClient);
 	    
-	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this);
+	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this, protClient);
 	    //moveFrontBackActionGP = new MoveFrontBackAction(p2DolphinNode, this); // movement controls for dolphin 2. 
 	    
-	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this);
+	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this, protClient);
 	    //moveLeftRightActionGP = new MoveLeftRightAction(p2DolphinNode, this);
 	    		
-	    yawNodeAction = new MoveYawAction(p1DolphinNode, this);
+	    yawNodeAction = new MoveYawAction(p1DolphinNode, this, protClient);
 	    //yawNodeActionGP = new MoveYawAction(p2DolphinNode, this);
 	    
-	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this);
+	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this, protClient);
 	    //pitchNodeActionGP = new MovePitchAction(p2DolphinNode, this);
 	    
 	    for (i = 0; i < controllers.size(); i++)
@@ -470,7 +516,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     				}
     				
     				p1Score += addScore;
-    				p2Score += addScore2;
     			}
     		}
     		else if (objectName.contains("PrismGroup"))

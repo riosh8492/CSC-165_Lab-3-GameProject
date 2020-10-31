@@ -1,6 +1,7 @@
 package myGameEngine;
 
 import a3.MyGame;
+import a3.ProtocolClient;
 import net.java.games.input.Event;
 import ray.input.action.AbstractInputAction;
 import ray.rage.scene.Camera;
@@ -15,6 +16,7 @@ public class MovePitchAction extends AbstractInputAction{
 	
 	SceneNode localDolphinN;
 	MyGame localGame;
+	ProtocolClient protClient;
 	
 	public MovePitchAction(SceneNode givenDolphin, MyGame givenGame)
 	{
@@ -22,6 +24,13 @@ public class MovePitchAction extends AbstractInputAction{
 		localGame = givenGame;
 	}
 	
+	public MovePitchAction(SceneNode givenDolphin, MyGame givenGame, ProtocolClient p) 
+	{
+		localDolphinN = givenDolphin;
+		localGame = givenGame;
+		protClient = p;
+	}
+
 	// Handles event where controller is acting in node mode. 
 	public void nodeModeAction(float time2, Event e)
 	{		
@@ -101,6 +110,7 @@ public class MovePitchAction extends AbstractInputAction{
 		if (localDolphinN != null) // If a game ref wasn't entered.
 		{
 			localDolphinN.pitch(angle);
+			// Call to protClient to send rotate message. 
 		}
 		
 	}

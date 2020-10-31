@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 import ray.networking.server.GameConnectionServer;
 import ray.networking.server.IClientInfo;
+import ray.rml.Vector3f;
 
 
 /** Class GameServerUDP extends GameConnectionServer<UUID>
@@ -96,7 +97,18 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			// case where server receives a MOVE message
 			if(msgTokens[0].compareTo("move") == 0)
 			{ 
-				// etc.
+				// Server now needs to relay the message to clients. 
+				// msg format: move,forward,clientID,newX,newY,newZ.
+				
+				UUID updateID = UUID.fromString(msgTokens[2]);
+				
+				Vector3f updatePos = (Vector3f) Vector3f.createFrom(
+						Float.parseFloat(msgTokens[3]),
+						Float.parseFloat(msgTokens[4]),
+						Float.parseFloat(msgTokens[5]));
+				
+				sendMoveMessages(updateID, msgTokens[1], updatePos);
+				
 			}
 		}
 	} // Function end. 
@@ -207,9 +219,18 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		{   e.printStackTrace();   } 
 
 	}
-	public void sendMoveMessages(UUID clientID, String[] position)
+	public void sendMoveMessages(UUID clientID, String updateType, Vector3f updatePos)
 	{ 
-		// etc….. 
+		System.out.println("GameServer - sendMoveMessages.");
+		// Format: move,forward,clientID,x,y,z;
+		try
+		{ 
+			String message = new String("move," + updateType + "," + clientID.toString());
+			message += "," + updatePos.x()+"," + updatePos.y() + "," + updatePos.z();
+			forwardPacketToAll(message, clientID);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   } 
 	}
 	
 	// Relay given Client BYE message to other clients for ghost termination. 

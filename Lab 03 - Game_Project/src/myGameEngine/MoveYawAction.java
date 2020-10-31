@@ -1,6 +1,7 @@
 package myGameEngine;
 
 import a3.MyGame;
+import a3.ProtocolClient;
 import net.java.games.input.Event;
 import ray.input.action.AbstractInputAction;
 import ray.rage.scene.SceneNode;
@@ -20,16 +21,15 @@ public class MoveYawAction extends AbstractInputAction
 {	
 	SceneNode localDolphinNode;
 	MyGame localGame;
+	ProtocolClient protClient;
 
-	public MoveYawAction(SceneNode givenDolphinN, MyGame givenGame)
+	public MoveYawAction(SceneNode givenDolphinN, MyGame givenGame, ProtocolClient p) 
 	{
-		//Angle angle = Degreef.createFrom(23.0f);
-				
 		localDolphinNode = givenDolphinN;
-		//localDolphinNode.yaw(angle); // Check if I can change dolphin?
 		localGame = givenGame;
+		protClient = p;
 	}
-	
+
 	private void nodeModeAction(float time2, Event e) 
 	{		
 		String command = e.getComponent().getName();

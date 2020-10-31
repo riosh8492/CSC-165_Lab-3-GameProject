@@ -19,7 +19,6 @@ public class GhostAvatar
 		this.ID = id;
 		this.localPos = (Vector3f) position; 
 	}
-	// accessors and setters for id, node, entity, and position
 	
 	// ID Accessor for this Ghost Avatar
 	public UUID obtainGhostID()

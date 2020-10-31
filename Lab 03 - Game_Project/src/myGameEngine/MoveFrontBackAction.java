@@ -15,13 +15,6 @@ public class MoveFrontBackAction extends AbstractInputAction
 	private float [] givenPlaneLoc; 
 	private ProtocolClient protClient;
 	
-	public MoveFrontBackAction(SceneNode dolphinNode, MyGame givenGame)
-	{
-		localDolphinNode = dolphinNode;
-		localGame = givenGame; // Purpose: to obtain last elapsed time float via func in MyGame
-		givenPlaneLoc = localGame.obtainPlaneLoc(); 
-	}
-	
 	// Network Constructor
 	public MoveFrontBackAction(SceneNode givenNode, MyGame givenGame, ProtocolClient p)
 	{
@@ -122,7 +115,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 		{
 			givenTime = localGame.obtainTime1();
 			nodeModeAction(time/1000.0f, e); 
-			//protClient.sendMoveMessage(localDolphinNode.getWorldPosition()); // Network
+			protClient.sendMoveMessage("forward", localDolphinNode.getLocalPosition()); // Network
 		}
 		
 	}

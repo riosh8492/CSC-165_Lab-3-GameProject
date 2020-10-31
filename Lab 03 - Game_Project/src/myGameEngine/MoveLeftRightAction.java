@@ -1,6 +1,7 @@
 package myGameEngine;
 
 import a3.MyGame;
+import a3.ProtocolClient;
 import net.java.games.input.Event;
 import ray.input.action.AbstractInputAction;
 import ray.rage.scene.Camera;
@@ -16,11 +17,19 @@ public class MoveLeftRightAction extends AbstractInputAction
 {
 	private SceneNode localDolphin; 
 	private MyGame localGame;
+	ProtocolClient protClient;
 
 	public MoveLeftRightAction(SceneNode givenDolphinN, MyGame givenGame)
 	{
 		localDolphin = givenDolphinN;
 		localGame = givenGame;
+	}
+
+	public MoveLeftRightAction(SceneNode givenDolphinN, MyGame givenGame, ProtocolClient p) {
+		// TODO Auto-generated constructor stub
+		localDolphin = givenDolphinN;
+		localGame = givenGame;
+		protClient = p;
 	}
 
 	// Handles event where controller is acting in node mode. 
@@ -63,10 +72,9 @@ public class MoveLeftRightAction extends AbstractInputAction
 		if (localDolphin != null)
 		{
 			nodeModeAction(time/1000.0f, e);
+			protClient.sendMoveMessage("Horizontal", localDolphin.getLocalPosition());
 		}
 		else
-		{
-			System.out.println("MIA Dolphin ...");
-		}
+		{   System.out.println("MIA Dolphin ...");   }
 	}
 }

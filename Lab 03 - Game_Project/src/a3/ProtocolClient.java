@@ -111,9 +111,17 @@ public class ProtocolClient extends GameConnectionClient
 				System.out.println("Client - details for requested -> call sendDetailsForMessage");
 			}
 
+			// Got a move message. This means that one of the ghost avatars needs to be updated. 
 			if(msgTokens[0].compareTo("move") == 0) // rec. “move...”
 			{ 
-				// etc….. 
+				// Format: move,forward,clientID,x,y,z;
+				UUID ghostID = UUID.fromString(msgTokens[1]);
+				Vector3f pos = (Vector3f) Vector3f.createFrom(
+						Float.parseFloat(msgTokens[3]),
+						Float.parseFloat(msgTokens[4]),
+						Float.parseFloat(msgTokens[5]));
+				// Give: updateMove, ID, new position. 
+				moveUpdateGhostAvatar(msgTokens[1], msgTokens[2], pos);
 			}
 		}
 	}
@@ -165,9 +173,20 @@ public class ProtocolClient extends GameConnectionClient
 		catch (IOException e) 
 		{   e.printStackTrace();   }
 	}
-	public void sendMoveMessage(Vector3 pos) // Pos = Vector3D
+	
+	// info to sent out: which client needs update, update pos, type of movement. 
+	public void sendMoveMessage(String moveType, Vector3 updatePos) // Pos = Vector3D
 	{ 
-		// etc….. 
+		System.out.println("Client. Sending Update Move Message to Server.");
+		try
+		{ 
+			String message = new String("move," + moveType); // move,forward
+			message += "," + id.toString();
+			message += "," + updatePos.x()+"," + updatePos.y() + "," + updatePos.z();
+			sendPacket(message);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   }
 	}
 	
 	private void createGhostAvatar(UUID ghostID, Vector3f ghostPos) 
@@ -182,6 +201,39 @@ public class ProtocolClient extends GameConnectionClient
 		{   game.addGhostAvatarToGameWorld(ghostHolder);   } 
 		catch (IOException e) 
 		{   e.printStackTrace();   }		
+	}
+	
+	// Meant to update the movements of client avatars for other clients. 
+	public void moveUpdateGhostAvatar(String updateMove, String ghostID, Vector3f updatePos)
+	{
+		// Update ghost instance that client holds, then call game world to update position. 
+		UUID ghostUUID = UUID.fromString(ghostID);
+		GhostAvatar tempGhost = obtainGhostInstance(ghostID);
+		
+		if (tempGhost != null)
+		{
+			tempGhost.setGhostPosition(updatePos);
+			game.updateGhostAvatar(ghostUUID, updatePos);
+		}
+		else 
+		{   System.out.println("Client error - Ghost instance not found in 'moveUpdateGhostAvatar func ...'");   }
+	}
+	
+	public GhostAvatar obtainGhostInstance(String givenID)
+	{
+		int i = 0, recordLength = ghostAvatars.size();
+		GhostAvatar tempGhost;
+		
+		for (i = 0; i < recordLength; i++)
+		{
+			tempGhost = ghostAvatars.get(i);
+			if (tempGhost.obtainGhostID().toString() == givenID)
+			{
+				return tempGhost; 
+			}
+		}
+		
+		return null; 
 	}
 	
 	private void updateGhostAvatar(UUID givenID, Vector3f updatePos) {
