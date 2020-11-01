@@ -72,7 +72,7 @@ public class MoveLeftRightAction extends AbstractInputAction
 		if (localDolphin != null)
 		{
 			nodeModeAction(time/1000.0f, e);
-			protClient.sendMoveMessage("Horizontal", localDolphin.getLocalPosition());
+			protClient.sendMoveMessage("horizontal", localDolphin.getLocalPosition());
 		}
 		else
 		{   System.out.println("MIA Dolphin ...");   }

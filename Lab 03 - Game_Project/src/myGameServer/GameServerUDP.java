@@ -25,6 +25,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	{ 
 		super(localPort, ProtocolType.UDP); 
 		clientAddressList = new String[10][2]; // Ten possible Clients. 
+		System.out.println("Game Server Address: " + this.getLocalInetAddress().toString());
 	}
 	
 	@Override

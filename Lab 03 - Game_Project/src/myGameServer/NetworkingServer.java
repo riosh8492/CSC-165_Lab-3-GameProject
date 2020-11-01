@@ -28,8 +28,8 @@ public class NetworkingServer
 				//thisTCPServer = new GameServerTCP(serverPort);
 			}
 			else
-			{   thisUDPServer = new GameServerUDP(serverPort); 
-				//System.out.println("UDP Server IP?: " + thisUDPServer.getLocalInetAddress());
+			{   
+				thisUDPServer = new GameServerUDP(serverPort); 
 			} 
 		}
 		catch (IOException e)

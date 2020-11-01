@@ -65,7 +65,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	//RotationController rotateController; 
 	//CustomNodeController customController;
 	
-	private float[] planeLoc; //= new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
+	private float[] planeLoc = new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
 	private int dummy; 
 	
 	// Input-Action Management
@@ -101,7 +101,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
     	
     	// Begin Scripting variable initialization.
-		setupScriptVariables("src\\a3\\script01.js");
+		// setupScriptVariables("src\\a3\\script01.js");
     }
 
     public static void main(String[] args) 
@@ -130,7 +130,10 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	private void setupScriptVariables(String filepath)
 	{
     	ScriptEngineManager factory = new ScriptEngineManager();
-		String scriptFileName = "src\\a3\\scriptGameInit.js";
+		String scriptFileName = "C:\\Users\\hrios\\OneDrive - California "
+				+ "State University, Sacramento\\Documents\\CSC - 165\\Lab "
+				+ "Directory (Assignments)\\Lab 3\\Lab 03 - Game_Project\\src\\"
+				+ "a3\\scriptGameInit.js"; //src\\a3\\
 		
 		// get the JavaScript engine
 		ScriptEngine jsEngine = factory.getEngineByName("js");
@@ -243,7 +246,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         		rs.createRenderState(RenderState.Type.TEXTURE);
         state.setTexture(mainTexture);
         dolphinE.setRenderState(state);	
-    	
         
         // Set Up Control Inputs
     	setupInputs(); // new function (defined below) to set up input actions
@@ -277,14 +279,14 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         // Floor Creation 
         // Set Up Floor Manual Object Plane
         ManualObject floor = new GroundPlaneObject().gameFloorObject(eng, sm, "gameFloor"); // Returns custom object data 
-        SceneNode floorN = sm.getRootSceneNode().createChildSceneNode("gameFloorNode");
+        SceneNode floorN = sm.getRootSceneNode().createChildSceneNode(floor.getName() + "Node");
         floorN.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]); // planeLoc
         floorN.scale(1.0f, 6.0f, 1.0f);
         floorN.attachObject(floor);
         
         // Set Up Floor Manual Object Plane
         ManualObject floor2 = new GroundPlaneObject().gameFloorObject2(eng, sm, "gameFloor2"); // Returns custom object data 
-        SceneNode floorN2 = sm.getRootSceneNode().createChildSceneNode("gameFloorNode2");
+        SceneNode floorN2 = sm.getRootSceneNode().createChildSceneNode(floor2.getName() + "Node");
         floorN2.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]);
         floorN2.scale(1.0f, 6.0f, 1.0f);
         floorN2.attachObject(floor2);
@@ -299,22 +301,17 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	    int i;													 // Loop count.
 	    
 	    SceneNode p1DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-	    //SceneNode p2DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphin2Node");
 	    
     	// build some action objects for doing things in response to user input
     	quitGameAction = new QuitGameAction(this, protClient);
 	    
 	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this, protClient);
-	    //moveFrontBackActionGP = new MoveFrontBackAction(p2DolphinNode, this); // movement controls for dolphin 2. 
 	    
 	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this, protClient);
-	    //moveLeftRightActionGP = new MoveLeftRightAction(p2DolphinNode, this);
 	    		
 	    yawNodeAction = new MoveYawAction(p1DolphinNode, this, protClient);
-	    //yawNodeActionGP = new MoveYawAction(p2DolphinNode, this);
 	    
 	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this, protClient);
-	    //pitchNodeActionGP = new MovePitchAction(p2DolphinNode, this);
 	    
 	    for (i = 0; i < controllers.size(); i++)
 	    {
