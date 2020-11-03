@@ -41,7 +41,7 @@ import ray.rage.rendersystem.gl4.GL4RenderSystem;
 import ray.rage.rendersystem.states.TextureState;
 import ray.rage.rendersystem.states.*;
 
-public class MyGame extends VariableFrameRateGame //implements MouseListener, MouseMotionListener
+public class MyGame extends VariableFrameRateGame
 {
 	// to minimize variable allocation in update()
 	GL4RenderSystem rs; //
@@ -66,7 +66,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	//CustomNodeController customController;
 	
 	private float[] planeLoc = new float [] {0.0f, 0.0f, 0.0f}; // Predetermined dolphin positions
-	private int dummy; 
 	
 	// Input-Action Management
 	private InputManager im; // input manager of device input
@@ -101,12 +100,13 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
     	
     	// Begin Scripting variable initialization.
-		// setupScriptVariables("src\\a3\\script01.js");
+		setupScriptVariables("src\\a3\\script01.js");
     }
 
     public static void main(String[] args) 
     {
     	Game game;
+
     	if (args.length == 0)
     	{   // a3.MyGame 10.0.0.246 6001 UDP. IP address, Port number, UDP/TCP
     		game = new MyGame("10.0.0.246", 6001, "UDP");  
@@ -119,8 +119,10 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         try {
             game.startup();
             game.run();
-        } catch (Exception e) {
+        } catch (Exception e) 
+        {
             e.printStackTrace(System.err);
+            System.out.println("Cause?: " + e.getCause());
         } finally {
             game.shutdown();
             game.exit();
@@ -217,7 +219,6 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
     	// Custom Object Group Node
     	SceneNode prismNodeGroup = 
     			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");
-    	
     	    	
     	// Set Up Earth Object. 
     	Entity earthE = sm.createEntity("earthPlanet", "earth.obj");
@@ -273,9 +274,7 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         //sm.addController(customController);
         
         createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
-       
-        // Texture Code, Floor Creation, etc -------------------------- 
-        
+               
         // Floor Creation 
         // Set Up Floor Manual Object Plane
         ManualObject floor = new GroundPlaneObject().gameFloorObject(eng, sm, "gameFloor"); // Returns custom object data 
@@ -666,19 +665,57 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
 			ghostN.attachObject(ghostE);
 			ghostN.setLocalPosition(avatar.obtainGhostPosition());
+			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
 			avatar.setGhostNode(ghostN);
 			avatar.setGhostEntity(ghostE);
+			
+			System.out.println("LocalGame -> Ghost Creation Name: " + ghostN.getName());
 		} 
 	}
 	
 	// Searches and updates the local ghost avatar based on given info. 
+	// Positional -> Forward, Backward, Left, Right
 	public void updateGhostAvatar(UUID ghostID, Vector3f newPos)
 	{
+		String GhostNodeName = "Ghost_ID:" + ghostID.toString() + ":Node";
     	SceneManager sm = getEngine().getSceneManager();
+    	SceneNode oldGhost = sm.getSceneNode(GhostNodeName);
+		
+    	//System.out.println("* * * Trying to reposition Ghost. Name: " + GhostNodeName);
+    	
+    	if (oldGhost != null)
+    	{
+        	oldGhost.setLocalPosition(newPos); // Set node's world position 
+    	}
+    	else
+    	{   System.out.println("* * * Error in MyGame.updateGhostAvatar - OldGhost => Null");   }
+	}
+	
+	// Updates given Ghost via ID by rotation/yaw. moveIndictor format: rotateU/D, or yawL/R.
+	// Last char determine which direction to pitch or yaw
+	public void updateRotateGhostAvatar(UUID ghostID, String moveIndictor)
+	{
+		char direction = moveIndictor.charAt(moveIndictor.length() - 1); 
+		float standardRate = (direction == 'u' || direction == 'l') ? 1.0f : -1.0f;
+		
 		String givenID = ghostID.toString();
+    	SceneManager sm = getEngine().getSceneManager();
     	SceneNode oldGhost = sm.getSceneNode("Ghost_ID:" + givenID + ":Node");
     	
-    	oldGhost.setLocalPosition(newPos); // Set node's world position 
+    	Vector3 globalY = Vector3f.createFrom(0.0f, 1.0f, 0.0f); // Yaw variables.  
+		Matrix3 matRot; 
+    	
+    	Angle turnRate = Degreef.createFrom(elapsedTimeHolder + standardRate); // Based on elapsed time.
+    	
+    	if (moveIndictor == "pitch")
+    	{
+    		oldGhost.pitch(turnRate);   // rate -> turn directions based on passed value by client who sent move update
+    	}
+    	else if (moveIndictor == "yaw") // May need to change this. 
+    	{
+    		matRot = Matrix3f.createRotationFrom(Degreef.createFrom(turnRate), globalY);
+    		oldGhost.setLocalRotation(matRot.mult(oldGhost.getWorldRotation()));
+    	}
 	}
 			
 	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)

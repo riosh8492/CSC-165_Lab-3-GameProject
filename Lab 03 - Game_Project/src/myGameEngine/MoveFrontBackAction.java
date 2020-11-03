@@ -115,7 +115,11 @@ public class MoveFrontBackAction extends AbstractInputAction
 		{
 			givenTime = localGame.obtainTime1();
 			nodeModeAction(time/1000.0f, e); 
-			protClient.sendMoveMessage("forward", localDolphinNode.getLocalPosition()); // Network
+			
+			if (protClient != null)
+			{
+				protClient.sendMoveMessage("forward", localDolphinNode.getLocalPosition()); // Network
+			}
 		}
 		
 	}

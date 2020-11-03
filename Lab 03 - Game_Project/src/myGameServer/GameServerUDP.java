@@ -49,20 +49,15 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					
 					if (validateClient(senderIP))
 					{
-						addClient(ci, clientID);
-						sendJoinedMessage(clientID, true);
-						
-						recordJoinedClient(clientID.toString(), senderIP.toString()); 
+						addClient(ci, clientID);           // Add Client
+						sendJoinedMessage(clientID, true); // Send Response that connection true.
+						recordJoinedClient(clientID.toString(), senderIP.toString());  // Record newly joined Client.
 					}
 					else
-					{
-						System.out.println("Client IP Address is already in Use.");
-					}
+					{   System.out.println("Client IP Address is already in Use.");   }
 				}
 				catch (IOException e)
-				{ 
-					e.printStackTrace();
-				} 
+				{   e.printStackTrace();   } 
 			}	
 			
 			// case where server receives a CREATE message
@@ -99,7 +94,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			if(msgTokens[0].compareTo("move") == 0)
 			{ 
 				// Server now needs to relay the message to clients. 
-				// msg format: move,forward,clientID,newX,newY,newZ.
+				// msg format: move,forward/yaw/pitch,clientID,newX,newY,newZ.
 				
 				UUID updateID = UUID.fromString(msgTokens[2]);
 				
@@ -109,7 +104,6 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 						Float.parseFloat(msgTokens[5]));
 				
 				sendMoveMessages(updateID, msgTokens[1], updatePos);
-				
 			}
 		}
 	} // Function end. 
@@ -122,9 +116,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		for (i=0; i < recordLength; i++)
 		{
 			if (clientAddressList[i][1] == senderIP.toString())
-			{
-				return false;
-			}
+			{   return false;   }
 		}
 		return true;
 	}
@@ -222,13 +214,23 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	}
 	public void sendMoveMessages(UUID clientID, String updateType, Vector3f updatePos)
 	{ 
+		String message;
 		System.out.println("GameServer - sendMoveMessages.");
 		// Format: move,forward,clientID,x,y,z;
 		try
 		{ 
-			String message = new String("move," + updateType + "," + clientID.toString());
-			message += "," + updatePos.x()+"," + updatePos.y() + "," + updatePos.z();
-			forwardPacketToAll(message, clientID);
+			if (updateType.contains("forward") || updateType.contains("horizontal"))
+			{
+				message = new String("move," + updateType + "," + clientID.toString());
+				message += "," + updatePos.x()+"," + updatePos.y() + "," + updatePos.z();
+				forwardPacketToAll(message, clientID);
+			}
+			else // Its a pitch/yaw with no change in position. 
+			{
+				message = new String("move," + updateType + "," + clientID.toString());
+				//message += "," + updatePos.x()+"," + updatePos.y() + "," + updatePos.z();
+				forwardPacketToAll(message, clientID);
+			}
 		}
 		catch (IOException e) 
 		{   e.printStackTrace();   } 

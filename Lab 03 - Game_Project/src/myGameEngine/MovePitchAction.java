@@ -17,12 +17,7 @@ public class MovePitchAction extends AbstractInputAction{
 	SceneNode localDolphinN;
 	MyGame localGame;
 	ProtocolClient protClient;
-	
-	public MovePitchAction(SceneNode givenDolphin, MyGame givenGame)
-	{
-		localDolphinN = givenDolphin;
-		localGame = givenGame;
-	}
+	boolean messageDir = false; 
 	
 	public MovePitchAction(SceneNode givenDolphin, MyGame givenGame, ProtocolClient p) 
 	{
@@ -41,32 +36,30 @@ public class MovePitchAction extends AbstractInputAction{
 		float time1 = localGame.obtainTime1();
 		
 		float deltaRate = time2 - time1; // Used to manage consistent elapsed time movement.
-		float deltaAng = deltaRate * 0.5f;  // Movement change
+		float deltaAng = deltaRate * 0.5f;  // Rotate movement change
 		
 		Angle myPosAngle = Degreef.createFrom(deltaAng), // Pos 10 degrees.
 			  myNegAngle = Degreef.createFrom(-deltaAng); // Pos 10 degrees.
 		
-		System.out.println("Pitch Command: " + command);
-		System.out.println("command char length: " + command.length());
-		System.out.println("Char command[0]: " + charCommand);
+		//System.out.println("Pitch Command: " + command);
+		//System.out.println("command char length: " + command.length());
+		//System.out.println("Char command[0]: " + charCommand);
 		
 		if ((charCommand == 'U') || (charCommand == 'D')) // Move forward
 		{
 			//System.out.println("Pitch Command: " + command);
 
 			if (charCommand == 'U')
-			{  
-				localDolphinN.pitch(myPosAngle);
-			}
+			{   localDolphinN.pitch(myPosAngle); messageDir = true;   }
 			else
-			{  localDolphinN.pitch(myNegAngle); }
+			{   localDolphinN.pitch(myNegAngle); messageDir = false;  }
 		}
 		else 
 		{
-			if (stickValue > 0.0f)
-			{  localDolphinN.pitch(myPosAngle); }
-			else
-			{  localDolphinN.pitch(myNegAngle);  }
+			if (stickValue > 0.4f)
+			{  localDolphinN.pitch(myPosAngle); messageDir = true;  }
+			else if (stickValue < -0.4f)
+			{  localDolphinN.pitch(myNegAngle); messageDir = false; }
 			
 		}
 	}
@@ -74,7 +67,8 @@ public class MovePitchAction extends AbstractInputAction{
 	@Override
 	public void performAction(float time2, Event e) 
 	{
-		String command = e.getComponent().getName();
+		String messageDetail = "pitch";
+		/*String command = e.getComponent().getName();
 		char charCommand = command.charAt(0); 
 
 		float stickValue = e.getValue();
@@ -104,13 +98,19 @@ public class MovePitchAction extends AbstractInputAction{
 			{  angle = myPosAngle; }
 			else if (stickValue < -0.4f)
 			{  angle = myNegAngle;  }
-			
-		}
+			localDolphinN.pitch(angle);
+		}//*/
 		
 		if (localDolphinN != null) // If a game ref wasn't entered.
 		{
-			localDolphinN.pitch(angle);
-			// Call to protClient to send rotate message. 
+			nodeModeAction(time2/1000.0f, e);
+			
+			if (protClient != null)
+			{
+				// Send MSG
+				messageDetail += (messageDir) ? "u" : "d"; // Means of converying yaw direction. 
+				protClient.sendMoveMessage(messageDetail, localDolphinN.getLocalPosition()); // Network
+			}
 		}
 		
 	}

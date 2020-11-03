@@ -2,6 +2,7 @@ package a3;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -22,7 +23,7 @@ public class ProtocolClient extends GameConnectionClient
 {
 	private MyGame game;
 	private UUID id;
-	private Vector<GhostAvatar> ghostAvatars;
+	private ArrayList<GhostAvatar> ghostAvatars;
 	private GhostAvatar ghostHolder; 
 	private int gAvatarID;
 	private Vector3f gAvatarPosition; 
@@ -32,7 +33,7 @@ public class ProtocolClient extends GameConnectionClient
 		super(remAddr, remPort, pType);
 		this.game = givenGame;
 		this.id = UUID.randomUUID();
-		this.ghostAvatars = new Vector<GhostAvatar>();
+		this.ghostAvatars = new ArrayList<GhostAvatar>();
 		System.out.println("Client ID: " + id);
 	}
 	
@@ -44,6 +45,7 @@ public class ProtocolClient extends GameConnectionClient
 		String[] msgTokens = strMessage.split(",");
 		
 		System.out.println("ProtocolClient - message received: " + strMessage);
+		System.out.println("ProtocolClient - GhostAvatars: " + ghostAvatars);
 		
 		if(msgTokens.length > 0)
 		{	
@@ -114,14 +116,24 @@ public class ProtocolClient extends GameConnectionClient
 			// Got a move message. This means that one of the ghost avatars needs to be updated. 
 			if(msgTokens[0].compareTo("move") == 0) // rec. “move...”
 			{ 
-				// Format: move,forward,clientID,x,y,z;
-				UUID ghostID = UUID.fromString(msgTokens[1]);
-				Vector3f pos = (Vector3f) Vector3f.createFrom(
-						Float.parseFloat(msgTokens[3]),
-						Float.parseFloat(msgTokens[4]),
-						Float.parseFloat(msgTokens[5]));
+				// * * * Format: move,forward,clientID,x,y,z * * *
+				UUID ghostID = UUID.fromString(msgTokens[2]); // Construct Ghost ID.
+				String command = msgTokens[1];				  // Get specific string move command. 
+				Vector3f pos = null;						  // Set position to null if rotation. 
+				
 				// Give: updateMove, ID, new position. 
-				moveUpdateGhostAvatar(msgTokens[1], msgTokens[2], pos);
+				if (command.contains("yaw") || command.contains("pitch"))
+				{
+					moveUpdateGhostAvatar(command, ghostID.toString(), pos); // Pass no position if its a rotation
+				}
+				else // Its a positional move
+				{
+					pos = (Vector3f) Vector3f.createFrom(
+							Float.parseFloat(msgTokens[3]),
+							Float.parseFloat(msgTokens[4]),
+							Float.parseFloat(msgTokens[5]));
+					moveUpdateGhostAvatar(msgTokens[1], ghostID.toString(), pos);
+				}
 			}
 		}
 	}
@@ -203,6 +215,8 @@ public class ProtocolClient extends GameConnectionClient
 		{   e.printStackTrace();   }		
 	}
 	
+	
+	// Moving / Rotations. 
 	// Meant to update the movements of client avatars for other clients. 
 	public void moveUpdateGhostAvatar(String updateMove, String ghostID, Vector3f updatePos)
 	{
@@ -212,22 +226,36 @@ public class ProtocolClient extends GameConnectionClient
 		
 		if (tempGhost != null)
 		{
-			tempGhost.setGhostPosition(updatePos);
-			game.updateGhostAvatar(ghostUUID, updatePos);
+			if (updateMove == "rotate" || updateMove== "yaw")
+			{
+				game.updateRotateGhostAvatar(ghostUUID, updateMove); // For Rotations
+			}
+			else // Else its a positional matter.
+			{
+				tempGhost.setGhostPosition(updatePos);            // For Positional Updates. 
+				game.updateGhostAvatar(ghostUUID, updatePos);
+			}
 		}
 		else 
 		{   System.out.println("Client error - Ghost instance not found in 'moveUpdateGhostAvatar func ...'");   }
 	}
 	
+	
+	
 	public GhostAvatar obtainGhostInstance(String givenID)
 	{
 		int i = 0, recordLength = ghostAvatars.size();
 		GhostAvatar tempGhost;
-		
+		UUID searchID = UUID.fromString(givenID);
+
+		//System.out.println("*** Finding Ghost in Array: " + ghostAvatars);
+		//System.out.println("*** GIVEN ID length: " + givenID.length() + ", ID: " + givenID);
 		for (i = 0; i < recordLength; i++)
 		{
 			tempGhost = ghostAvatars.get(i);
-			if (tempGhost.obtainGhostID().toString() == givenID)
+			//System.out.println("*** Finding Ghost ID: " + tempGhost.obtainGhostID().toString());
+			//System.out.println("*** GIVEN loop ID length: " + tempGhost.obtainGhostID().toString().length() + ", ID: " + tempGhost.obtainGhostID().toString());
+			if (tempGhost.obtainGhostID().equals(searchID))
 			{
 				return tempGhost; 
 			}
@@ -241,6 +269,7 @@ public class ProtocolClient extends GameConnectionClient
 		System.out.println("Client. Update certain local ghost avatar. " + givenID); 
 		int i =0, recordLength = ghostAvatars.size();
 		GhostAvatar tempGhost;
+		boolean ghostNotFound = true;
 		
 		for (i = 0; i < recordLength; i++)
 		{
@@ -252,15 +281,16 @@ public class ProtocolClient extends GameConnectionClient
 				
 				// Update's Ghost Node's game world pos.
 				game.updateGhostAvatar(tempGhost.obtainGhostID(), updatePos);
-				
+				ghostNotFound = false;
 				break; // End loop. 
 			}
 		}
 		
-		// If function still going, then this client does not have an instance of the ghost avatar. Thus we have to make one.
-		System.out.println("----> Creating ghost avatar in details for as the ghost the details are for isn't existant");
-		createGhostAvatar(givenID, updatePos);
-		
+		if (ghostNotFound) // If ghost not found, then it wasn't made -> create one. 
+		{
+			System.out.println("----> Creating ghost avatar in details for as the ghost the details are for isn't existant");
+			createGhostAvatar(givenID, updatePos);
+		}
 	}
 
 	private void removeGhostAvatar(UUID ghostID) {

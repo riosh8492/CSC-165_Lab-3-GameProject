@@ -28,7 +28,10 @@ public class QuitGameAction extends AbstractInputAction
 		System.out.println("shutdown requested");
 		localGame.setState(Game.State.STOPPING);
 		
-		protClient.sendByeMessage();
+		if (protClient != null)
+		{
+			protClient.sendByeMessage();
+		}
 	}
 
 }
