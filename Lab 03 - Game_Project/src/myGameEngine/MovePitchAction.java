@@ -34,16 +34,15 @@ public class MovePitchAction extends AbstractInputAction{
 		
 		float stickValue = e.getValue();
 		float time1 = localGame.obtainTime1();
-		
 		float deltaRate = time2 - time1; // Used to manage consistent elapsed time movement.
 		float deltaAng = deltaRate * 0.5f;  // Rotate movement change
 		
 		Angle myPosAngle = Degreef.createFrom(deltaAng), // Pos 10 degrees.
 			  myNegAngle = Degreef.createFrom(-deltaAng); // Pos 10 degrees.
 		
-		//System.out.println("Pitch Command: " + command);
-		//System.out.println("command char length: " + command.length());
-		//System.out.println("Char command[0]: " + charCommand);
+		System.out.println("Pitch Command: " + command);
+		System.out.println("command char length: " + command.length());
+		System.out.println("Char command[0]: " + charCommand);
 		
 		if ((charCommand == 'U') || (charCommand == 'D')) // Move forward
 		{
@@ -68,7 +67,7 @@ public class MovePitchAction extends AbstractInputAction{
 	public void performAction(float time2, Event e) 
 	{
 		String messageDetail = "pitch";
-		/*String command = e.getComponent().getName();
+		String command = e.getComponent().getName();
 		char charCommand = command.charAt(0); 
 
 		float stickValue = e.getValue();
@@ -84,26 +83,22 @@ public class MovePitchAction extends AbstractInputAction{
 		if ((charCommand == 'U') || (charCommand == 'D')) // Move forward
 		{
 			if (charCommand == 'U')
-			{  
-				angle = myPosAngle;
-			}
+			{   angle = myPosAngle; messageDir = true;    }
 			else
-			{  
-				angle = myNegAngle; 
-			}
+			{   angle = myNegAngle; messageDir = false;   }
 		}
 		else 
 		{
 			if (stickValue > 0.4f)
-			{  angle = myPosAngle; }
+			{  angle = myPosAngle; messageDir = true;   }
 			else if (stickValue < -0.4f)
-			{  angle = myNegAngle;  }
+			{  angle = myNegAngle; messageDir = false;   }
 			localDolphinN.pitch(angle);
 		}//*/
 		
 		if (localDolphinN != null) // If a game ref wasn't entered.
 		{
-			nodeModeAction(time2/1000.0f, e);
+			//this.nodeModeAction(time2/1000.0f, e);
 			
 			if (protClient != null)
 			{

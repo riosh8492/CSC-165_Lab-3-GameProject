@@ -97,13 +97,23 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				// msg format: move,forward/yaw/pitch,clientID,newX,newY,newZ.
 				
 				UUID updateID = UUID.fromString(msgTokens[2]);
+				String msgCommand = msgTokens[1]; // forward/horizontal/pitch/yaw. 
 				
-				Vector3f updatePos = (Vector3f) Vector3f.createFrom(
-						Float.parseFloat(msgTokens[3]),
-						Float.parseFloat(msgTokens[4]),
-						Float.parseFloat(msgTokens[5]));
+				Vector3f updatePos = null;
 				
-				sendMoveMessages(updateID, msgTokens[1], updatePos);
+				if (msgCommand.contains("forward") || msgCommand.contains("horizontal"))
+				{
+					updatePos = (Vector3f) Vector3f.createFrom(
+								Float.parseFloat(msgTokens[3]),
+								Float.parseFloat(msgTokens[4]),
+								Float.parseFloat(msgTokens[5]));
+					sendMoveMessages(updateID, msgTokens[1], updatePos);
+				}
+				else // Command is either Yaw/Pitch
+				{
+					sendMoveMessages(updateID, msgTokens[1], updatePos);
+				}
+				
 			}
 		}
 	} // Function end. 

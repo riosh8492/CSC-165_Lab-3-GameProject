@@ -189,7 +189,7 @@ public class ProtocolClient extends GameConnectionClient
 	// info to sent out: which client needs update, update pos, type of movement. 
 	public void sendMoveMessage(String moveType, Vector3 updatePos) // Pos = Vector3D
 	{ 
-		System.out.println("Client. Sending Update Move Message to Server.");
+		System.out.println("Client. Sending Update Move Message to Server. moveType: " + moveType);
 		try
 		{ 
 			String message = new String("move," + moveType); // move,forward
@@ -226,7 +226,7 @@ public class ProtocolClient extends GameConnectionClient
 		
 		if (tempGhost != null)
 		{
-			if (updateMove == "rotate" || updateMove== "yaw")
+			if (updateMove.contains("pitch") || updateMove.contains("yaw"))
 			{
 				game.updateRotateGhostAvatar(ghostUUID, updateMove); // For Rotations
 			}

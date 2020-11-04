@@ -707,11 +707,11 @@ public class MyGame extends VariableFrameRateGame
     	
     	Angle turnRate = Degreef.createFrom(elapsedTimeHolder + standardRate); // Based on elapsed time.
     	
-    	if (moveIndictor == "pitch")
+    	if (moveIndictor.contains("pitch"))
     	{
     		oldGhost.pitch(turnRate);   // rate -> turn directions based on passed value by client who sent move update
     	}
-    	else if (moveIndictor == "yaw") // May need to change this. 
+    	else if (moveIndictor.contains("yaw")) // May need to change this. 
     	{
     		matRot = Matrix3f.createRotationFrom(Degreef.createFrom(turnRate), globalY);
     		oldGhost.setLocalRotation(matRot.mult(oldGhost.getWorldRotation()));
