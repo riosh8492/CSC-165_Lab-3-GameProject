@@ -1,4 +1,5 @@
 // Author: Hector Rios. ID: 220205545
+
 package a3;
 
 
@@ -14,10 +15,6 @@ import java.util.Iterator;
 
 import ray.networking.IGameConnection.ProtocolType;
 import java.util.UUID;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 
 import myGameEngine.*;
 import ray.input.GenericInputManager;
@@ -41,7 +38,7 @@ import ray.rage.rendersystem.gl4.GL4RenderSystem;
 import ray.rage.rendersystem.states.TextureState;
 import ray.rage.rendersystem.states.*;
 
-public class MyGame extends VariableFrameRateGame
+public class MyGame extends VariableFrameRateGame //implements MouseListener, MouseMotionListener
 {
 	// to minimize variable allocation in update()
 	GL4RenderSystem rs; //
@@ -51,16 +48,23 @@ public class MyGame extends VariableFrameRateGame
 	float time1 = 0.0f, time2 = 0.0f;
 	boolean timeCount = false;
 	float elapsedTimeHolder = 0.0f;
-	Camera myCamera;
-	SceneNode myCameraN;
+	Camera myCamera, myCamera2;
+	SceneNode myCameraN, myCameraN2;
 	
-	private int p1Score = 0; // Scores to be displayed
+	
+	//Game variables
+	private int p1Score = 0, p2Score = 0; // Scores to be displayed
+	//Skybox
+	private BasicSkyBox skyBox;
+	//Map
+	private BasicMap terrainMap;
 
 	private RenderWindow renderWindow;
 	private RenderSystem renderSystem;
 
 	ArrayList<String> planetGameRecord = new ArrayList<String>(10);
 	ArrayList<String> prismGameRecord1 = new ArrayList<String>(6); // main prism group.
+	ArrayList<String> prismGameRecord2 = new ArrayList<String>(6); // main prism group.
 	
 	//RotationController rotateController; 
 	//CustomNodeController customController;
@@ -69,12 +73,12 @@ public class MyGame extends VariableFrameRateGame
 	
 	// Input-Action Management
 	private InputManager im; // input manager of device input
-	private Action quitGameAction; // Action objs to be tied to certain button components.
-	private Action moveFrontBackAction;  
-	private Action moveLeftRightAction; // Camera C Mode movement.
+	private Action quitGameAction, switchModeAction; // Action objs to be tied to certain button components.
+	private Action moveFrontBackAction, moveFrontBackActionGP;  
+	private Action moveLeftRightAction, moveLeftRightActionGP; // Camera C Mode movement.
 	private Action yawNodeAction, pitchNodeAction;       // Camera C move Pitch/Yaw
 	
-	private Camera3Pcontroller orbitController1;
+	private Camera3Pcontroller orbitController1, orbitController2;
 	private Action yawNodeActionGP;
 	private Action pitchNodeActionGP;
 	
@@ -98,15 +102,11 @@ public class MyGame extends VariableFrameRateGame
         serverProtocol = ProtocolType.UDP; // Change to UDP
         
 		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
-    	
-    	// Begin Scripting variable initialization.
-		setupScriptVariables("src\\a3\\script01.js");
     }
 
     public static void main(String[] args) 
     {
     	Game game;
-
     	if (args.length == 0)
     	{   // a3.MyGame 10.0.0.246 6001 UDP. IP address, Port number, UDP/TCP
     		game = new MyGame("10.0.0.246", 6001, "UDP");  
@@ -115,60 +115,20 @@ public class MyGame extends VariableFrameRateGame
     	{
             game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
     	}
-    	
         try {
             game.startup();
             game.run();
-        } catch (Exception e) 
-        {
+        } catch (Exception e) {
             e.printStackTrace(System.err);
-            System.out.println("Cause?: " + e.getCause());
         } finally {
             game.shutdown();
             game.exit();
         }
     }
     
-	private void setupScriptVariables(String filepath)
-	{
-    	ScriptEngineManager factory = new ScriptEngineManager();
-		String scriptFileName = "C:\\Users\\hrios\\OneDrive - California "
-				+ "State University, Sacramento\\Documents\\CSC - 165\\Lab "
-				+ "Directory (Assignments)\\Lab 3\\Lab 03 - Game_Project\\src\\"
-				+ "a3\\scriptGameInit.js"; //src\\a3\\
-		
-		// get the JavaScript engine
-		ScriptEngine jsEngine = factory.getEngineByName("js");
-		// run the script
-		executeScript(jsEngine, scriptFileName);
-		// Set variables to initial values via script. 
-		elapsTime	      = (int) jsEngine.get("elapsTime");
-		counter   	      = (int) jsEngine.get("counter");
-		playerScore       = (int) jsEngine.get("playerScore"); 
-		tempPlayerScore   = (int) jsEngine.get("tempPlayerScore");
-		time1     		  = (int) jsEngine.get("time1"); time2 = (int) jsEngine.get("time2");
-		timeCount 		  = (boolean) jsEngine.get("timeCount");
-		elapsedTimeHolder = (int) jsEngine.get("elapsedTimeHolder");
-	}
-
-    
-    private void executeScript(ScriptEngine engine, String scriptFileName)
-    {
-	    try
-	    { 
-	    	FileReader fileReader = new FileReader(scriptFileName);
-	    	engine.eval(fileReader); //execute the script statements in the file
-	    	fileReader.close();
-	    }
-	    catch (FileNotFoundException e1)
-	    {   System.out.println(scriptFileName + " not found " + e1);   }
-	    catch (IOException e2)
-	    {   System.out.println("IO problem with " + scriptFileName + e2);   }
-	    catch (ScriptException e3)
-	    {   System.out.println("ScriptException in " + scriptFileName + e3);   }
-	    catch (NullPointerException e4)
-	    {   System.out.println ("Null ptr exception in " + scriptFileName + e4);   }
-    }
+    // GETTERS AND SETTERS
+    public BasicMap getMap() {   return terrainMap;   } //need to use terrain ht func
+   
 	
     // Auto-called by Rage
 	@Override
@@ -219,6 +179,7 @@ public class MyGame extends VariableFrameRateGame
     	// Custom Object Group Node
     	SceneNode prismNodeGroup = 
     			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");
+    	
     	    	
     	// Set Up Earth Object. 
     	Entity earthE = sm.createEntity("earthPlanet", "earth.obj");
@@ -248,6 +209,14 @@ public class MyGame extends VariableFrameRateGame
         state.setTexture(mainTexture);
         dolphinE.setRenderState(state);	
         
+        
+        // Set Up SkyBox
+        skyBox = new BasicSkyBox(eng, "desert");
+        // Set Up Map
+        terrainMap = new BasicMap("desert","desertStage_htMap.jpeg","desertTexture.jpeg");
+        terrainMap.createMap(eng, sm);
+    	
+        
         // Set Up Control Inputs
     	setupInputs(); // new function (defined below) to set up input actions
 
@@ -274,18 +243,20 @@ public class MyGame extends VariableFrameRateGame
         //sm.addController(customController);
         
         createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
-               
+       
+        // Texture Code, Floor Creation, etc -------------------------- 
+        
         // Floor Creation 
         // Set Up Floor Manual Object Plane
         ManualObject floor = new GroundPlaneObject().gameFloorObject(eng, sm, "gameFloor"); // Returns custom object data 
-        SceneNode floorN = sm.getRootSceneNode().createChildSceneNode(floor.getName() + "Node");
+        SceneNode floorN = sm.getRootSceneNode().createChildSceneNode("gameFloorNode");
         floorN.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]); // planeLoc
         floorN.scale(1.0f, 6.0f, 1.0f);
         floorN.attachObject(floor);
         
         // Set Up Floor Manual Object Plane
         ManualObject floor2 = new GroundPlaneObject().gameFloorObject2(eng, sm, "gameFloor2"); // Returns custom object data 
-        SceneNode floorN2 = sm.getRootSceneNode().createChildSceneNode(floor2.getName() + "Node");
+        SceneNode floorN2 = sm.getRootSceneNode().createChildSceneNode("gameFloorNode2");
         floorN2.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]);
         floorN2.scale(1.0f, 6.0f, 1.0f);
         floorN2.attachObject(floor2);
@@ -300,17 +271,22 @@ public class MyGame extends VariableFrameRateGame
 	    int i;													 // Loop count.
 	    
 	    SceneNode p1DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphinNode");
+	    //SceneNode p2DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphin2Node");
 	    
     	// build some action objects for doing things in response to user input
     	quitGameAction = new QuitGameAction(this, protClient);
 	    
-	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this, protClient);
+	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this);
+	    //moveFrontBackActionGP = new MoveFrontBackAction(p2DolphinNode, this); // movement controls for dolphin 2. 
 	    
-	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this, protClient);
+	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this);
+	    //moveLeftRightActionGP = new MoveLeftRightAction(p2DolphinNode, this);
 	    		
-	    yawNodeAction = new MoveYawAction(p1DolphinNode, this, protClient);
+	    yawNodeAction = new MoveYawAction(p1DolphinNode, this);
+	    //yawNodeActionGP = new MoveYawAction(p2DolphinNode, this);
 	    
-	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this, protClient);
+	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this);
+	    //pitchNodeActionGP = new MovePitchAction(p2DolphinNode, this);
 	    
 	    for (i = 0; i < controllers.size(); i++)
 	    {
@@ -512,6 +488,7 @@ public class MyGame extends VariableFrameRateGame
     				}
     				
     				p1Score += addScore;
+    				p2Score += addScore2;
     			}
     		}
     		else if (objectName.contains("PrismGroup"))
@@ -665,57 +642,19 @@ public class MyGame extends VariableFrameRateGame
 			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
 			ghostN.attachObject(ghostE);
 			ghostN.setLocalPosition(avatar.obtainGhostPosition());
-			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
 			avatar.setGhostNode(ghostN);
 			avatar.setGhostEntity(ghostE);
-			
-			System.out.println("LocalGame -> Ghost Creation Name: " + ghostN.getName());
 		} 
 	}
 	
 	// Searches and updates the local ghost avatar based on given info. 
-	// Positional -> Forward, Backward, Left, Right
 	public void updateGhostAvatar(UUID ghostID, Vector3f newPos)
 	{
-		String GhostNodeName = "Ghost_ID:" + ghostID.toString() + ":Node";
     	SceneManager sm = getEngine().getSceneManager();
-    	SceneNode oldGhost = sm.getSceneNode(GhostNodeName);
-		
-    	//System.out.println("* * * Trying to reposition Ghost. Name: " + GhostNodeName);
-    	
-    	if (oldGhost != null)
-    	{
-        	oldGhost.setLocalPosition(newPos); // Set node's world position 
-    	}
-    	else
-    	{   System.out.println("* * * Error in MyGame.updateGhostAvatar - OldGhost => Null");   }
-	}
-	
-	// Updates given Ghost via ID by rotation/yaw. moveIndictor format: rotateU/D, or yawL/R.
-	// Last char determine which direction to pitch or yaw
-	public void updateRotateGhostAvatar(UUID ghostID, String moveIndictor)
-	{
-		char direction = moveIndictor.charAt(moveIndictor.length() - 1); 
-		float standardRate = (direction == 'u' || direction == 'l') ? 1.0f : -1.0f;
-		
 		String givenID = ghostID.toString();
-    	SceneManager sm = getEngine().getSceneManager();
     	SceneNode oldGhost = sm.getSceneNode("Ghost_ID:" + givenID + ":Node");
     	
-    	Vector3 globalY = Vector3f.createFrom(0.0f, 1.0f, 0.0f); // Yaw variables.  
-		Matrix3 matRot; 
-    	
-    	Angle turnRate = Degreef.createFrom(elapsedTimeHolder + standardRate); // Based on elapsed time.
-    	
-    	if (moveIndictor.contains("pitch"))
-    	{
-    		oldGhost.pitch(turnRate);   // rate -> turn directions based on passed value by client who sent move update
-    	}
-    	else if (moveIndictor.contains("yaw")) // May need to change this. 
-    	{
-    		matRot = Matrix3f.createRotationFrom(Degreef.createFrom(turnRate), globalY);
-    		oldGhost.setLocalRotation(matRot.mult(oldGhost.getWorldRotation()));
-    	}
+    	oldGhost.setLocalPosition(newPos); // Set node's world position 
 	}
 			
 	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)
