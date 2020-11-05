@@ -57,7 +57,7 @@ public class MyGame extends VariableFrameRateGame
 	
 	
 	//Game variables
-	private int p1Score = 0,     // Score to be displayed
+	private int p1Score = 0;     // Score to be displayed
 	private BasicSkyBox skyBox;  //Skybox
 	private BasicMap terrainMap; //Map
 
@@ -80,8 +80,6 @@ public class MyGame extends VariableFrameRateGame
 	private Action yawNodeAction, pitchNodeAction; 
 
 	private Camera3Pcontroller orbitController1;
-	private Action yawNodeActionGP;
-	private Action pitchNodeActionGP;
 	
 	private String serverAddress;    // Needed Variables for Network Operation
 	private int serverPort;
@@ -103,7 +101,7 @@ public class MyGame extends VariableFrameRateGame
         serverProtocol = ProtocolType.UDP; // Change to UDP
         
 		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
-		setUpScriptVariables("src\\a3\\scriptGameInit.js");
+		setupScriptVariables("src\\a3\\scriptGameInit.js");
 	}
 
     public static void main(String[] args) 
@@ -724,7 +722,6 @@ public class MyGame extends VariableFrameRateGame
     		matRot = Matrix3f.createRotationFrom(Degreef.createFrom(turnRate), globalY);
     		oldGhost.setLocalRotation(matRot.mult(oldGhost.getWorldRotation()));
     	}
-    	oldGhost.setLocalPosition(newPos); // Set node's world position 
 	}
 			
 	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)

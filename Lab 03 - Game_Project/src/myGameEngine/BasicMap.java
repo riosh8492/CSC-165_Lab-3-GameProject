@@ -1,5 +1,4 @@
 /// BASIC MAP
-// Author: Peter Kapellas
 // Things needed for this class to work correctly:
 // In CODE:
 //  Needs to be instantiated in the game with a "new BasicMap(string, string, string)" call.
@@ -10,8 +9,6 @@
 // Oct26,2020 - Just a basic shell that puts the code to generate a tessellated map object
 //             in one place. Contains a function to get the height at a specified location
 //             by passing a vector containing the object's world coords.
-// Nov2, 2020 - Added setters/getters for the Strings containing the map information. A
-//             new constructor was also added that does not initialize the variables.
 
 package myGameEngine;
 
@@ -27,25 +24,12 @@ public class BasicMap
    
    Tessellation tessEntity;
    
-   public BasicMap()
-   {
-	   
-   }
-   
    public BasicMap(String mN, String htMap, String texture)
    {
 	  mapName = mN;
 	  heightMap = htMap;
 	  textureName = texture;
    }
-// SETTERS
-   public void setMapName(String name) {	  mapName = name;   }
-   public void setHeightMap(String htMp) {   heightMap = htMp;   }
-   public void setTexture(String tx) {   textureName = tx;   }
-// GETTERS
-   public String getMapName() {   return mapName;   }
-   public String getHeightMap() {   return heightMap;   }
-   public String getTexture() {   return textureName;   }
    
    public void createMap(Engine engine, SceneManager sm)
    {

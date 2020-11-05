@@ -49,7 +49,7 @@ public class ProtocolClient extends GameConnectionClient
 		
 		if(msgTokens.length > 0)
 		{	
-			if(msgTokens[0].compareTo("join") == 0) // receive ï¿½joinï¿½
+			if(msgTokens[0].compareTo("join") == 0) // receive “join”
 			{ // format: join, success or join, failure
 				if(msgTokens[1].compareTo("success") == 0)
 				{ 
@@ -61,7 +61,7 @@ public class ProtocolClient extends GameConnectionClient
 			}
 			
 			// Informs this client to destroy given ghost ID.
-			if(msgTokens[0].compareTo("bye") == 0) // receive ï¿½byeï¿½
+			if(msgTokens[0].compareTo("bye") == 0) // receive “bye”
 			{ // format: bye, remoteId
 				UUID ghostID = UUID.fromString(msgTokens[1]);
 				removeGhostAvatar(ghostID);
@@ -88,7 +88,7 @@ public class ProtocolClient extends GameConnectionClient
 				}
 			}
 			// Informs client that a remote client wants a local status update
-			if(msgTokens[0].compareTo("wantDetails") == 0) // rec. ï¿½wantsï¿½ï¿½
+			if(msgTokens[0].compareTo("wantDetails") == 0) // rec. “wants…”
 			{ 
 				// Server sent request to send own info to newly made client for ghost creation.
 				if (msgTokens[1] != id.toString())
@@ -100,7 +100,7 @@ public class ProtocolClient extends GameConnectionClient
 			
 			// Provides client with updated status of a remote avatar
 			// Update Ghost avatar for sender
-			if (msgTokens[0].compareTo("detailsFor") == 0 )// receive ï¿½dsfrï¿½)
+			if (msgTokens[0].compareTo("detailsFor") == 0 )// receive “dsfr”)
 			{ 
 				// Getting details to either create ghost or update current ghost 
 				UUID ghostID = UUID.fromString(msgTokens[1]);
@@ -114,7 +114,7 @@ public class ProtocolClient extends GameConnectionClient
 			}
 
 			// Got a move message. This means that one of the ghost avatars needs to be updated. 
-			if(msgTokens[0].compareTo("move") == 0) // rec. ï¿½move...ï¿½
+			if(msgTokens[0].compareTo("move") == 0) // rec. “move...”
 			{ 
 				// * * * Format: move,forward,clientID,x,y,z * * *
 				UUID ghostID = UUID.fromString(msgTokens[2]); // Construct Ghost ID.
@@ -294,12 +294,13 @@ public class ProtocolClient extends GameConnectionClient
 			createGhostAvatar(givenID, updatePos);
 		}
 	}
-
+	
 	// Checks the ProtocolClient Record to see if given ghost ID already exists. 
 	private boolean isGhostCreationValid(UUID ghostID)
 	{
 		GhostAvatar clientGhost = obtainGhostInstance(ghostID.toString());
-		boolean ghostCreated = (clientGhost != null) ? false : true; // If a ghost exists -> not valid call to create ghost avatar. Vice versa.  
+		boolean ghostCreated = (clientGhost == null) ? false : true; // If a ghost exists -> not valid call to create ghost avatar. Vice versa.  
+		System.out.println("isGhostCreationValid: False-Nonexistant/True-Existant: " + ghostCreated);
 		return ghostCreated;
 	}
 
