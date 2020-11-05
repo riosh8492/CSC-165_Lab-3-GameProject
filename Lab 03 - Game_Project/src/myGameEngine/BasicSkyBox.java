@@ -1,4 +1,5 @@
 /// SKY BOX
+// Author: Peter Kapellas
 // Things needed for this class to work correctly:
 // In CODE:
 //  Needs to be instantiated in the game with a "new BasicSkyBox(engine, string)" call.
@@ -40,8 +41,18 @@ public class BasicSkyBox
    {
 	  engine = eg;
 	  boxName = nm;
+	  
+	  try {
+	     setUpSkyBox();
+	  }
+	  catch(IOException err) {
+		  //error processing...
+	  }
    }
-   
+
+// SETTERS   
+//  public void setSkyBox(String name, String)
+// GETTERS
    
    public void setUpSkyBox() throws IOException
    {

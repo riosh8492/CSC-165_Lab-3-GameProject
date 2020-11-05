@@ -1,4 +1,5 @@
 // Author: Hector Rios. ID: 220205545
+
 package a3;
 
 
@@ -50,7 +51,13 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
 	Camera myCamera, myCamera2;
 	SceneNode myCameraN, myCameraN2;
 	
+	
+	//Game variables
 	private int p1Score = 0, p2Score = 0; // Scores to be displayed
+	//Skybox
+	private BasicSkyBox skyBox;
+	//Map
+	private BasicMap terrainMap;
 
 	private RenderWindow renderWindow;
 	private RenderSystem renderSystem;
@@ -118,6 +125,10 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
             game.exit();
         }
     }
+    
+    // GETTERS AND SETTERS
+    public BasicMap getMap() {   return terrainMap;   } //need to use terrain ht func
+   
 	
     // Auto-called by Rage
 	@Override
@@ -197,6 +208,13 @@ public class MyGame extends VariableFrameRateGame //implements MouseListener, Mo
         		rs.createRenderState(RenderState.Type.TEXTURE);
         state.setTexture(mainTexture);
         dolphinE.setRenderState(state);	
+        
+        
+        // Set Up SkyBox
+        skyBox = new BasicSkyBox(eng, "desert");
+        // Set Up Map
+        terrainMap = new BasicMap("desert","desertStage_htMap.jpeg","desertTexture.jpeg");
+        terrainMap.createMap(eng, sm);
     	
         
         // Set Up Control Inputs

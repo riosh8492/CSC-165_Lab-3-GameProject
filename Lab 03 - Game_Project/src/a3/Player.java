@@ -1,3 +1,9 @@
+//Author: Peter Kapellas
+//Basic Player class
+//Nov 2,2020 - Added a pointer to the game thats set on Player object creation.
+//            This pointer is needed as it gives access to the .getMap() function
+//            that allows the Player object to find the height of the terrain
+//            to allow terrain following during movement.
 package a3;
 
 import ray.rage.scene.*;
@@ -7,6 +13,7 @@ import ray.rage.game.*;
 
 public class Player 
 {
+   private MyGame gamePtr = null;
    private SceneNode playerAvatar = null;
    private Camera3Pcontroller orbitController = null;
    private float playerSpeed;
@@ -20,8 +27,9 @@ public class Player
 //            to associate a player avatar with a player. This may not be used,
 //            however, because the player will most likely be instantiated
 //            before the SceneNode exists.
-   public Player()
+   public Player(MyGame game)
    {
+	   gamePtr = game; //A pointer to the game.
 	   playerSpeed = 0.008f;
 	   points = 0;
    }
@@ -29,7 +37,7 @@ public class Player
    public Player(SceneNode player)
    {
 	   playerAvatar = player;
-	   playerSpeed = 0.001f;
+	   playerSpeed = 0.008f;
 	   points = 0;
    }
    
@@ -70,7 +78,10 @@ public class Player
        Vector3f p = (Vector3f)playerAvatar.getLocalPosition();
        Vector3f p1 = (Vector3f)Vector3f.createFrom(moveSpd*v.x(), moveSpd*v.y(), moveSpd*v.z());
        Vector3f p2 = (Vector3f)p.add((Vector3)p1);
-       playerAvatar.setLocalPosition((Vector3)Vector3f.createFrom(p2.x(),p2.y(),p2.z()));
+       playerAvatar.setLocalPosition((Vector3)Vector3f.createFrom(
+    		   p2.x(),
+    		   gamePtr.getMap().getHeight(p2),
+    		   p2.z()));
        updateOrbit();
    }
    
@@ -82,7 +93,10 @@ public class Player
        Vector3f p1 = (Vector3f)Vector3f.createFrom(moveSpd*v.x(), moveSpd*v.y(), moveSpd*v.z());
        Vector3f p2 = (Vector3f)p.add((Vector3)p1);
        //if(game.rangeCheck(p2))
-       playerAvatar.setLocalPosition((Vector3)Vector3f.createFrom(p2.x(),p2.y(),p2.z()));
+       playerAvatar.setLocalPosition((Vector3)Vector3f.createFrom(
+    		   p2.x(),
+    		   gamePtr.getMap().getHeight(p2),
+    		   p2.z()));
        updateOrbit();
    }
    
