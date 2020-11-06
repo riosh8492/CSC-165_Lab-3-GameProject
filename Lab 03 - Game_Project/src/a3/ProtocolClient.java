@@ -49,7 +49,7 @@ public class ProtocolClient extends GameConnectionClient
 		
 		if(msgTokens.length > 0)
 		{	
-			if(msgTokens[0].compareTo("join") == 0) // receive “join”
+			if(msgTokens[0].compareTo("join") == 0) // receive ï¿½joinï¿½
 			{ // format: join, success or join, failure
 				if(msgTokens[1].compareTo("success") == 0)
 				{ 
@@ -61,7 +61,7 @@ public class ProtocolClient extends GameConnectionClient
 			}
 			
 			// Informs this client to destroy given ghost ID.
-			if(msgTokens[0].compareTo("bye") == 0) // receive “bye”
+			if(msgTokens[0].compareTo("bye") == 0) // receive ï¿½byeï¿½
 			{ // format: bye, remoteId
 				UUID ghostID = UUID.fromString(msgTokens[1]);
 				removeGhostAvatar(ghostID);
@@ -88,7 +88,7 @@ public class ProtocolClient extends GameConnectionClient
 				}
 			}
 			// Informs client that a remote client wants a local status update
-			if(msgTokens[0].compareTo("wantDetails") == 0) // rec. “wants…”
+			if(msgTokens[0].compareTo("wantDetails") == 0) // rec. ï¿½wantsï¿½ï¿½
 			{ 
 				// Server sent request to send own info to newly made client for ghost creation.
 				if (msgTokens[1] != id.toString())
@@ -100,7 +100,7 @@ public class ProtocolClient extends GameConnectionClient
 			
 			// Provides client with updated status of a remote avatar
 			// Update Ghost avatar for sender
-			if (msgTokens[0].compareTo("detailsFor") == 0 )// receive “dsfr”)
+			if (msgTokens[0].compareTo("detailsFor") == 0 )// receive ï¿½dsfrï¿½)
 			{ 
 				// Getting details to either create ghost or update current ghost 
 				UUID ghostID = UUID.fromString(msgTokens[1]);
@@ -114,7 +114,7 @@ public class ProtocolClient extends GameConnectionClient
 			}
 
 			// Got a move message. This means that one of the ghost avatars needs to be updated. 
-			if(msgTokens[0].compareTo("move") == 0) // rec. “move...”
+			if(msgTokens[0].compareTo("move") == 0) // rec. ï¿½move...ï¿½
 			{ 
 				// * * * Format: move,forward,clientID,x,y,z * * *
 				UUID ghostID = UUID.fromString(msgTokens[2]); // Construct Ghost ID.
@@ -276,7 +276,7 @@ public class ProtocolClient extends GameConnectionClient
 		for (i = 0; i < recordLength; i++)
 		{
 			tempGhost = ghostAvatars.get(i);
-			if (tempGhost.obtainGhostID() == givenID)
+			if (tempGhost.obtainGhostID().equals(givenID))
 			{
 				// Update Ghost object's position.
 				tempGhost.setGhostPosition(updatePos);
@@ -305,8 +305,24 @@ public class ProtocolClient extends GameConnectionClient
 	}
 
 	private void removeGhostAvatar(UUID ghostID) {
-		// Empty by Intention
-		System.out.println("RemoveGhostAvatar function called ... ");
+		System.out.println("RemoveGhostAvatar function called for Ghost: " + ghostID.toString());
 		
+		GhostAvatar deadGhost = obtainGhostInstance(ghostID.toString());
+		GhostAvatar tempGhost; 
+		int i, rlength = ghostAvatars.size();
+
+		// Rid of the Ghost Existence in the local game world.
+		game.removeGhostAvatarFromGameWorld(deadGhost);
+		
+		// Rid of the Ghost instance in this ProtocolClient.
+		for (i = 0; i < rlength; i++)
+		{
+			tempGhost = ghostAvatars.get(i);
+			if (tempGhost.obtainGhostID().equals(ghostID))
+			{
+				ghostAvatars.remove(i); // Remove ghost found at that instance.
+				break; // End loop. 
+			}
+		} // End loop. 
 	}
 }
