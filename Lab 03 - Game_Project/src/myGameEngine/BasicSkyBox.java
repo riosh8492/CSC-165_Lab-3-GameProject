@@ -40,18 +40,19 @@ public class BasicSkyBox
    public BasicSkyBox(Engine eg, String nm)
    {
 	  engine = eg;
-	  boxName = nm;
+     boxName = nm;
+     
+     try 
+     {
+        setUpSkyBox();
+     }
+     catch(IOException err) 
+     {
+        //error processing...
+        System.out.println("setUpSkyBox error ...");
+     }
    }
 
-   try 
-   {
-      setUpSkyBox();
-   }
-   catch(IOException err) 
-   {
-      //error processing...
-      System.out.println("setUpSkyBox error ...");
-   }
    
    // SETTERS   
    //  public void setSkyBox(String name, String)
