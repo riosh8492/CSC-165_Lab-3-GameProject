@@ -249,7 +249,7 @@ public class MyGame extends VariableFrameRateGame
         state.setTexture(mainTexture);
 		dolphinE.setRenderState(state);
 		
-		createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
+		//createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
         
         // Set Up SkyBox/Map
         skyBox = new BasicSkyBox(eng, "desert");
