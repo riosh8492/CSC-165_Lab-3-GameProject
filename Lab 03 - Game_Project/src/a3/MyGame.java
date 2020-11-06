@@ -99,9 +99,10 @@ public class MyGame extends VariableFrameRateGame
         serverAddress = serverAddr;
         serverPort = sPort;
         serverProtocol = ProtocolType.UDP; // Change to UDP
-        
+
 		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
-		setupScriptVariables("src\\a3\\scriptGameInit.js");
+
+		setupScriptVariables("a3\\scriptGameInit.js");
 	}
 
     public static void main(String[] args) 
@@ -130,10 +131,10 @@ public class MyGame extends VariableFrameRateGame
 	private void setupScriptVariables(String filepath)
 	{
     	ScriptEngineManager factory = new ScriptEngineManager();
-		String scriptFileName = "C:\\Users\\hrios\\OneDrive - California "
-				+ "State University, Sacramento\\Documents\\CSC - 165\\Lab "
-				+ "Directory (Assignments)\\Lab 3\\Lab 03 - Game_Project\\src\\"
-				+ "a3\\scriptGameInit.js"; //src\\a3\\
+
+		String scriptFileName = System.getProperty("user.dir");  // Directory. 
+		scriptFileName += "\\a3\\ScriptGameInit.js";
+		//System.out.println("Directory Info: " + scriptFileName);
 
 		// get the JavaScript engine
 		ScriptEngine jsEngine = factory.getEngineByName("js");
@@ -248,9 +249,7 @@ public class MyGame extends VariableFrameRateGame
         		rs.createRenderState(RenderState.Type.TEXTURE);
         state.setTexture(mainTexture);
 		dolphinE.setRenderState(state);
-		
-		//createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
-        
+		        
         // Set Up SkyBox/Map
         skyBox = new BasicSkyBox(eng, "desert");
         // Set Up Map
