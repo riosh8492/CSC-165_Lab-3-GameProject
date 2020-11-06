@@ -247,7 +247,9 @@ public class MyGame extends VariableFrameRateGame
         TextureState state = (TextureState) 
         		rs.createRenderState(RenderState.Type.TEXTURE);
         state.setTexture(mainTexture);
-        dolphinE.setRenderState(state);
+		dolphinE.setRenderState(state);
+		
+		createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
         
         // Set Up SkyBox/Map
         skyBox = new BasicSkyBox(eng, "desert");
@@ -281,7 +283,7 @@ public class MyGame extends VariableFrameRateGame
         //sm.addController(rotateController); // Adds controller to SM.
         //sm.addController(customController);
         
-        createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
+        //createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
        
         // Texture Code, Floor Creation, etc -------------------------- 
         
