@@ -15,19 +15,19 @@ import ray.rml.Vector3f;
 
 public class MoveLeftRightAction extends AbstractInputAction 
 {
-	private SceneNode localDolphin; 
+	private SceneNode clientModelNode; 
 	private MyGame localGame;
 	ProtocolClient protClient;
 
 	public MoveLeftRightAction(SceneNode givenDolphinN, MyGame givenGame)
 	{
-		localDolphin = givenDolphinN;
+		clientModelNode = givenDolphinN;
 		localGame = givenGame;
 	}
 
 	public MoveLeftRightAction(SceneNode givenDolphinN, MyGame givenGame, ProtocolClient p) {
 		// TODO Auto-generated constructor stub
-		localDolphin = givenDolphinN;
+		clientModelNode = givenDolphinN;
 		localGame = givenGame;
 		protClient = p;
 	}
@@ -49,16 +49,16 @@ public class MoveLeftRightAction extends AbstractInputAction
 		if ((charCommand == 'A') || (charCommand == 'D')) // Move Left/Right via KB.
 		{
 			if (charCommand == 'A')
-			{  localDolphin.moveLeft(-deltaPos);  }
+			{  clientModelNode.moveLeft(-deltaPos);  }
 			else 
-			{  localDolphin.moveRight(-deltaPos);  }
+			{  clientModelNode.moveRight(-deltaPos);  }
 		}
 		else // If no command from KB then check stick values.
 		{
 			if (stickValue > 0.0f)
-			{  localDolphin.moveRight(-deltaPos);  }
+			{  clientModelNode.moveRight(-deltaPos);  }
 			else if (stickValue < 0.0f)
-			{  localDolphin.moveLeft(-deltaPos); }
+			{  clientModelNode.moveLeft(-deltaPos); }
 			else 
 			{
 				System.out.println("Left/Right -> Stick: N/A");
@@ -69,16 +69,16 @@ public class MoveLeftRightAction extends AbstractInputAction
 	@Override
 	public void performAction(float time, Event e) // This moves it along its own UVN axises
 	{ 
-		if (localDolphin != null)
+		if (clientModelNode != null)
 		{
 			nodeModeAction(time/1000.0f, e);
 			
 			if (protClient != null)
 			{
-				protClient.sendMoveMessage("horizontal", localDolphin.getLocalPosition());
+				protClient.sendMoveMessage("horizontal", clientModelNode.getLocalPosition());
 			}
 		}
 		else
-		{   System.out.println("MIA Dolphin ...");   }
+		{   System.out.println("MIA client Model ...");   }
 	}
 }

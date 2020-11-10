@@ -14,14 +14,14 @@ import ray.rml.Vector3f;
 
 public class MovePitchAction extends AbstractInputAction{
 	
-	SceneNode localDolphinN;
+	SceneNode clientModelNode;
 	MyGame localGame;
 	ProtocolClient protClient;
 	boolean messageDir = false; 
 	
-	public MovePitchAction(SceneNode givenDolphin, MyGame givenGame, ProtocolClient p) 
+	public MovePitchAction(SceneNode givenClientModel, MyGame givenGame, ProtocolClient p) 
 	{
-		localDolphinN = givenDolphin;
+		clientModelNode = givenClientModel;
 		localGame = givenGame;
 		protClient = p;
 	}
@@ -40,25 +40,25 @@ public class MovePitchAction extends AbstractInputAction{
 		Angle myPosAngle = Degreef.createFrom(deltaAng), // Pos 10 degrees.
 			  myNegAngle = Degreef.createFrom(-deltaAng); // Pos 10 degrees.
 		
-		System.out.println("Pitch Command: " + command);
-		System.out.println("command char length: " + command.length());
-		System.out.println("Char command[0]: " + charCommand);
+		//System.out.println("Pitch Command: " + command);
+		//System.out.println("command char length: " + command.length());
+		//System.out.println("Char command[0]: " + charCommand);
 		
 		if ((charCommand == 'U') || (charCommand == 'D')) // Move forward
 		{
 			//System.out.println("Pitch Command: " + command);
 
 			if (charCommand == 'U')
-			{   localDolphinN.pitch(myPosAngle); messageDir = true;   }
+			{   clientModelNode.pitch(myPosAngle); messageDir = true;   }
 			else
-			{   localDolphinN.pitch(myNegAngle); messageDir = false;  }
+			{   clientModelNode.pitch(myNegAngle); messageDir = false;  }
 		}
 		else 
 		{
 			if (stickValue > 0.4f)
-			{  localDolphinN.pitch(myPosAngle); messageDir = true;  }
+			{  clientModelNode.pitch(myPosAngle); messageDir = true;  }
 			else if (stickValue < -0.4f)
-			{  localDolphinN.pitch(myNegAngle); messageDir = false; }
+			{  clientModelNode.pitch(myNegAngle); messageDir = false; }
 			
 		}
 	}
@@ -93,10 +93,10 @@ public class MovePitchAction extends AbstractInputAction{
 			{  angle = myPosAngle; messageDir = true;   }
 			else if (stickValue < -0.4f)
 			{  angle = myNegAngle; messageDir = false;   }
-			localDolphinN.pitch(angle);
+			clientModelNode.pitch(angle);
 		}//*/
 		
-		if (localDolphinN != null) // If a game ref wasn't entered.
+		if (clientModelNode != null) // If a game ref wasn't entered.
 		{
 			//this.nodeModeAction(time2/1000.0f, e);
 			
@@ -104,7 +104,7 @@ public class MovePitchAction extends AbstractInputAction{
 			{
 				// Send MSG
 				messageDetail += (messageDir) ? "u" : "d"; // Means of converying yaw direction. 
-				protClient.sendMoveMessage(messageDetail, localDolphinN.getLocalPosition()); // Network
+				protClient.sendMoveMessage(messageDetail, clientModelNode.getLocalPosition()); // Network
 			}
 		}
 		

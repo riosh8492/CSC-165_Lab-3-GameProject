@@ -10,7 +10,7 @@ import net.java.games.input.Event;
 public class MoveFrontBackAction extends AbstractInputAction
 {
 	private MyGame localGame = null;
-	private SceneNode localDolphinNode = null;
+	private SceneNode clientModelNode = null;
 	private float givenTime = 0.0f;
 	private float [] givenPlaneLoc; 
 	private ProtocolClient protClient;
@@ -18,7 +18,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 	// Network Constructor
 	public MoveFrontBackAction(SceneNode givenNode, MyGame givenGame, ProtocolClient p)
 	{
-		localDolphinNode = givenNode;
+		clientModelNode = givenNode;
 		localGame = givenGame; // Purpose: to obtain last elapsed time float via func in MyGame
 		givenPlaneLoc = localGame.obtainPlaneLoc(); 
 		protClient = p;
@@ -38,19 +38,19 @@ public class MoveFrontBackAction extends AbstractInputAction
 		{
 			if (charCommand == 'W')
 			{  
-				localDolphinNode.moveForward(deltaPos);
-				if (isWithinBounds((Vector3f) localDolphinNode.getLocalPosition()) == false)
+				clientModelNode.moveForward(deltaPos);
+				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
-					localDolphinNode.moveBackward(deltaPos);
+					clientModelNode.moveBackward(deltaPos);
 				}
 			
 			}
 			else
 			{  	
-				localDolphinNode.moveBackward(deltaPos);
-				if (isWithinBounds((Vector3f) localDolphinNode.getLocalPosition()) == false)
+				clientModelNode.moveBackward(deltaPos);
+				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
-					localDolphinNode.moveForward(deltaPos);
+					clientModelNode.moveForward(deltaPos);
 				}
 				
 			}
@@ -59,18 +59,18 @@ public class MoveFrontBackAction extends AbstractInputAction
 		{
 			if (stickValue > 0.0f)
 			{  
-				localDolphinNode.moveBackward(deltaPos);  
-				if (isWithinBounds((Vector3f) localDolphinNode.getLocalPosition()) == false)
+				clientModelNode.moveBackward(deltaPos);  
+				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
-					localDolphinNode.moveForward(deltaPos);
+					clientModelNode.moveForward(deltaPos);
 				}
 			}
 			else if (stickValue < 0.0f)
 			{  
-				localDolphinNode.moveForward(deltaPos); 
-				if (isWithinBounds((Vector3f) localDolphinNode.getLocalPosition()) == false)
+				clientModelNode.moveForward(deltaPos); 
+				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
-					localDolphinNode.moveBackward(deltaPos);
+					clientModelNode.moveBackward(deltaPos);
 				}
 			}
 			else 
@@ -111,14 +111,14 @@ public class MoveFrontBackAction extends AbstractInputAction
 	public void performAction(float time, Event e) // This moves it along its own UVN axises
 	{ 
 		
-		if (localDolphinNode != null) // If there is a passed dolphin node, move dolphin front/back
+		if (clientModelNode != null) // If there is a passed dolphin node, move dolphin front/back
 		{
 			givenTime = localGame.obtainTime1();
 			nodeModeAction(time/1000.0f, e); 
 			
 			if (protClient != null)
 			{
-				protClient.sendMoveMessage("forward", localDolphinNode.getLocalPosition()); // Network
+				protClient.sendMoveMessage("forward", clientModelNode.getLocalPosition()); // Network
 			}
 		}
 		

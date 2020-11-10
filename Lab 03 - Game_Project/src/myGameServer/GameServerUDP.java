@@ -143,8 +143,6 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			{
 				clientAddressList[i][0] = ID;
 				clientAddressList[i][1] = IP_Address;
-				//System.out.println("Client UUID & IP_Address Saved ... Max 10 ppl...");
-				//System.out.println(recordLength - i + " Spots Left.");
 				break; 
 			}
 		}

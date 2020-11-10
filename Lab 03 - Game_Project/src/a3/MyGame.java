@@ -42,6 +42,10 @@ import ray.rage.rendersystem.gl4.GL4RenderSystem;
 import ray.rage.rendersystem.states.TextureState;
 import ray.rage.rendersystem.states.*;
 
+import ray.physics.PhysicsEngine;
+import ray.physics.PhysicsObject;
+import ray.physics.PhysicsEngineFactory;
+
 public class MyGame extends VariableFrameRateGame
 {
 	// to minimize variable allocation in update()
@@ -87,6 +91,12 @@ public class MyGame extends VariableFrameRateGame
 	private ProtocolClient protClient;
 	private boolean isClientConnected;
 	private ArrayList<UUID> gameObjectsToRemove;
+	
+	private SceneNode ball1Node, ball2Node, gndNode; // Physics Variables. 
+	private final static String GROUND_E = "Ground";
+	private final static String GROUND_N = "GroundNode";
+	private PhysicsEngine physicsEng; private PhysicsObject ball1PhysObj, ball2PhysObj, gndPlaneP;
+	private boolean running = false;
 	
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
@@ -203,11 +213,11 @@ public class MyGame extends VariableFrameRateGame
 	private void setupOrbitCamera(Engine eng, SceneManager sm) 
 	{
 		// Goal is to set up Orbit Camera for player 1 (for now).
-		SceneNode dolphinN = sm.getSceneNode("myDolphinNode");
+		SceneNode clientN = sm.getSceneNode("clientModelNode");
 		SceneNode cameraN = sm.getSceneNode("MainCameraNode");
 		
 		Camera camera = sm.getCamera("MainCamera"); // view port 0
-		orbitController1 = new Camera3Pcontroller(cameraN, dolphinN, "keyboard", im, renderSystem, renderWindow);
+		orbitController1 = new Camera3Pcontroller(cameraN, clientN, "keyboard", im, renderSystem, renderWindow);
 	}
     
     // Set up the GameWorld
@@ -215,12 +225,8 @@ public class MyGame extends VariableFrameRateGame
     protected void setupScene(Engine eng, SceneManager sm) throws IOException 
     {    	
     	// Setting Up Group Nodes for Hierarchical Objects
-    	// Dolphin Group Node
-    	SceneNode dolphinNodeGroup = 
-    			sm.getRootSceneNode().createChildSceneNode("myDolphinNodeGroup");
-    	// Custom Object Group Node
     	SceneNode prismNodeGroup = 
-    			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");
+    			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");   // Custom Object Group Node
     	
     	// Set Up Earth Object. 
     	Entity earthE = sm.createEntity("earthPlanet", "earth.obj");
@@ -230,32 +236,33 @@ public class MyGame extends VariableFrameRateGame
     	earthN.setLocalPosition(0.0f, 0.5f, -1.0f);
     	earthN.setLocalScale(0.1f, 0.1f, 0.1f);
 
-        // Set Up Dolphin & Textures for Player 1 ---
-		Entity dolphinE = sm.createEntity("myDolphin", "dolphinHighPoly.obj");
-        dolphinE.setPrimitive(Primitive.TRIANGLES);
+        // Set Up Model & Texture for Player 1 ---
+		Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+		clientE.setPrimitive(Primitive.TRIANGLES);
         
         // Set dolphin1 Node to be child of dolphin group node.
-        SceneNode dolphinN = dolphinNodeGroup.createChildSceneNode(dolphinE.getName() + "Node");
-        dolphinN.moveUp(0.5f);
-        dolphinN.rotate(Degreef.createFrom(180.0f), dolphinN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-        dolphinN.moveLeft(0.8f);
-        dolphinN.moveBackward(0.5f);
-        dolphinN.attachObject(dolphinE); // Attach node to model entity
+        SceneNode clientN = sm.getRootSceneNode().createChildSceneNode(clientE.getName() + "Node"); // clientModelNode
+        clientN.setLocalPosition(0.0f, 0.5f, 0.0f);
+        //clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        //clientN.moveUp(0.5f);
+        clientN.moveLeft(0.8f);
+        clientN.setLocalScale(0.2f, 0.2f, 0.2f); // SCALE DOWN -> TESTING.
+        clientN.moveBackward(0.5f);
+        clientN.attachObject(clientE); // Attach node to model entity
         
         TextureManager tm = eng.getTextureManager();
-        Texture mainTexture = tm.getAssetByPath("Dolphin_HighPolyUV.png");
+        Texture mainTexture = tm.getAssetByPath("RacoonModelUV.png"); // CubModelUV.png - Dolphin_HighPolyUV.png
         RenderSystem rs = sm.getRenderSystem();
         TextureState state = (TextureState) 
         		rs.createRenderState(RenderState.Type.TEXTURE);
         state.setTexture(mainTexture);
-		dolphinE.setRenderState(state);
+        clientE.setRenderState(state);
 		        
         // Set Up SkyBox/Map
         skyBox = new BasicSkyBox(eng, "desert");
         // Set Up Map
         terrainMap = new BasicMap("desert","desertStage_htMap.jpeg","desertTexture.jpeg");
         terrainMap.createMap(eng, sm);
-		
 		
         // Set Up Control Inputs
     	setupInputs(); // new function (defined below) to set up input actions
@@ -287,7 +294,7 @@ public class MyGame extends VariableFrameRateGame
         // Texture Code, Floor Creation, etc -------------------------- 
         
         // Floor Creation 
-        // Set Up Floor Manual Object Plane
+        /*/ Set Up Floor Manual Object Plane
         ManualObject floor = new GroundPlaneObject().gameFloorObject(eng, sm, "gameFloor"); // Returns custom object data 
         SceneNode floorN = sm.getRootSceneNode().createChildSceneNode("gameFloorNode");
         floorN.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]); // planeLoc
@@ -299,7 +306,7 @@ public class MyGame extends VariableFrameRateGame
         SceneNode floorN2 = sm.getRootSceneNode().createChildSceneNode("gameFloorNode2");
         floorN2.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]);
         floorN2.scale(1.0f, 6.0f, 1.0f);
-        floorN2.attachObject(floor2);
+        floorN2.attachObject(floor2); // */
     }
 
 	protected void setupInputs()
@@ -310,16 +317,15 @@ public class MyGame extends VariableFrameRateGame
 	    Controller inputComponent;                               // Manage controllers
 	    int i;													 // Loop count.
 	    
-	    SceneNode p1DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-	    //SceneNode p2DolphinNode = getEngine().getSceneManager().getSceneNode("myDolphin2Node");
+	    SceneNode p1ClientNode = getEngine().getSceneManager().getSceneNode("clientModelNode");
 	    
     	// build some action objects for doing things in response to user input
     	quitGameAction = new QuitGameAction(this, protClient);
-	    moveFrontBackAction = new MoveFrontBackAction(p1DolphinNode, this, protClient);
-	    moveLeftRightAction = new MoveLeftRightAction(p1DolphinNode, this, protClient);	
+	    moveFrontBackAction = new MoveFrontBackAction(p1ClientNode, this, protClient);
+	    moveLeftRightAction = new MoveLeftRightAction(p1ClientNode, this, protClient);	
 		
-		yawNodeAction = new MoveYawAction(p1DolphinNode, this, protClient);
-	    pitchNodeAction = new MovePitchAction(p1DolphinNode, this, protClient);
+		yawNodeAction = new MoveYawAction(p1ClientNode, this, protClient);
+	    pitchNodeAction = new MovePitchAction(p1ClientNode, this, protClient);
 	    
 	    for (i = 0; i < controllers.size(); i++)
 	    {
@@ -391,6 +397,91 @@ public class MyGame extends VariableFrameRateGame
 	    	}
 	    };
     }
+	
+	// Physics Code Logic Begin.
+	private void initPhysicsSystem()
+	{ 
+		String engine = "ray.physics.JBullet.JBulletPhysicsEngine";
+		
+		float[] gravity = {0, -2f, 0};
+		physicsEng = PhysicsEngineFactory.createPhysicsEngine(engine);
+		physicsEng.initSystem();
+		physicsEng.setGravity(gravity);
+	}
+	
+	private void createRagePhysicsWorld()
+	{ 
+		float mass = 1.0f;
+		float up[] = {0,1,0};
+		double[] temptf;
+		
+		temptf = toDoubleArray(ball1Node.getLocalTransform().toFloatArray());
+		ball1PhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 2.0f);
+		ball1PhysObj.setBounciness(1.0f);
+		ball1Node.setPhysicsObject(ball1PhysObj);
+		
+		temptf = toDoubleArray(ball2Node.getLocalTransform().toFloatArray());
+		ball2PhysObj = physicsEng.addSphereObject(physicsEng.nextUID(),
+		mass, temptf, 2.0f);
+		//ball2PhysicsObj.setBounciness(1.0f);
+		//ball2Node.setPhysicsObject(ball2PhysicsObj);
+		
+		temptf = toDoubleArray(gndNode.getLocalTransform().toFloatArray());
+		gndPlaneP = physicsEng.addStaticPlaneObject(physicsEng.nextUID(), temptf, up, 0.0f);
+		gndPlaneP.setBounciness(1.0f);
+		gndNode.scale(3f, .05f, 3f);
+		gndNode.setLocalPosition(0, -7, -2);
+		gndNode.setPhysicsObject(gndPlaneP);
+		// can also set damping, friction, etc.
+	}
+	
+	// Meant to update the Physics World.
+	private void updatePhysicsWorld(float time)
+	{
+		if (running)
+		{ 
+			Matrix4 mat;
+			physicsEng.update(time);
+			
+			for (SceneNode s : getEngine().getSceneManager().getSceneNodes())
+			{ 
+				if (s.getPhysicsObject() != null)
+				{   
+					mat = Matrix4f.createFrom(toFloatArray(s.getPhysicsObject().getTransform()));
+					s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
+				} 
+			} 
+		}
+	}
+	
+	// Physics Utility Functions
+	private float[] toFloatArray(double[] arr)
+	{ 
+		if (arr == null) 
+		{   return null;   }
+		
+		int n = arr.length;
+		float[] ret = new float[n];
+		
+		for (int i = 0; i < n; i++)
+		{   ret[i] = (float)arr[i];   }
+		
+		return ret;
+	}
+	private double[] toDoubleArray(float[] arr)
+	{ 
+		if (arr == null)
+		{   return null;   }
+		
+		int n = arr.length;
+		double[] ret = new double[n];
+		for (int i = 0; i < n; i++)
+		{   ret[i] = (double)arr[i];   }
+		
+		return ret;
+	}
+	// Physics Utility End.
+	// Physics End.
 
 	// Game Logic Goes here. 
     @Override
@@ -411,9 +502,7 @@ public class MyGame extends VariableFrameRateGame
 		
 		// tell the input manager to process the inputs
 		im.update(elapsTime);
-		
-		gamePlanetEnvironment();                 // Go through game objects and manage game count.
-		
+				
 		processNetworking(elapsTime/1000.0f);    // Process Network Needs
 		
 		orbitController1.updateCameraPosition(); // Updates Orbit Controller 
@@ -477,67 +566,6 @@ public class MyGame extends VariableFrameRateGame
 	    	sm.destroySceneNode(it.next().toString());
 	    }
 	    gameObjectsToRemove.clear();
-    }
-    
-	// Manages the Game rules such as point increase when in C mode.
-    private void gamePlanetEnvironment()
-    {
-    	SceneManager sm = getEngine().getSceneManager();
-    	
-    	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-
-    	String objectName;
-    	Iterable<SceneNode> sceneWorld = sm.getSceneNodes(); // Get a collection of Scene objects.
-    	
-    	int i = 0, addScore=0, addScore2=0;
-    	float distanceP1, distanceP2;
-    	float planetRadius = 0.8f, earthRadius = 0.4f;
-    	
-    	for (SceneNode objectN : sceneWorld)
-    	{
-    		objectName = objectN.getName(); // Get name of node object
-    		//System.out.println("objectN: " + objectN.getName());
-    		if (objectName.contains("Planet")) // Found a planet, now check distance.
-    		{
-    			// Check the distance from the dolphin.
-    			if ( (!planetGameRecord.contains(objectName)) && (myCamera.getMode() == 'n') ) // If the planet hasn't been visited. 
-    			{
-    				// May need to change this collision detection for other objects. 
-    				distanceP1 = returnDistance((Vector3f) dolphinN.getLocalPosition(), (Vector3f) objectN.getLocalPosition());
-    				
-    				if (objectName.contains("earth"))
-    				{
-    					addScore = (Math.abs(distanceP1) < earthRadius) ? 10 : 0; 
-    				}
-    				else
-    				{
-    					addScore = (Math.abs(distanceP1) < planetRadius) ? 10 : 0; 
-    				}
-    				//vController
-    				if (addScore != 0) // If there was contact then add rotation controllers.
-    				{
-    					planetGameRecord.add(objectName);
-    			    	//rotateController.addNode(objectN);
-    				}
-    				
-    				p1Score += addScore;
-    			}
-    		}
-    		else if (objectName.contains("PrismGroup"))
-    		{
-    			if (determinePrismCollision(objectN, dolphinN))
-    			{
-    				// If true that collision found. 
-    				if (!prismGameRecord1.contains(objectName)) // If not already recorded.
-    				{
-    					prismGameRecord1.add(objectName); // Add to hit places. 
-    					p1Score -= 10;                    // Reduce score based on first time collision.
-    				}
-    				// Return dolphin to start of map.
-    				dolphinN.setLocalPosition(1.0f, 0.6f, 1.5f);
-        		}
-    		}
-    	}
     }
     
     // Creates groups of hierarchical objects. 

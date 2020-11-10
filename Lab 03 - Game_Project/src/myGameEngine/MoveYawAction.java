@@ -19,14 +19,14 @@ import ray.rml.Vector3f;
 
 public class MoveYawAction extends AbstractInputAction
 {	
-	SceneNode localDolphinNode;
+	SceneNode clientModelNode;
 	MyGame localGame;
 	ProtocolClient protClient;
 	boolean messageDir = false; 
 
 	public MoveYawAction(SceneNode givenDolphinN, MyGame givenGame, ProtocolClient p) 
 	{
-		localDolphinNode = givenDolphinN;
+		clientModelNode = givenDolphinN;
 		localGame = givenGame;
 		protClient = p;
 	}
@@ -89,7 +89,7 @@ public class MoveYawAction extends AbstractInputAction
 			//localDolphinNode.setLocalRotation(matRot.mult(localDolphinNode.getWorldRotation()));
 			messageDir = false;
 		}
-		localDolphinNode.setLocalRotation(matRot.mult(localDolphinNode.getWorldRotation()));
+		clientModelNode.setLocalRotation(matRot.mult(clientModelNode.getWorldRotation()));
 	}
 	
 	@Override
@@ -97,7 +97,7 @@ public class MoveYawAction extends AbstractInputAction
 	{
 		String messageDetail = "yaw";
 		
-		if (localDolphinNode != null) // If there is a passed dolphin node, move dolphin front/back
+		if (clientModelNode != null) // If there is a passed dolphin node, move dolphin front/back
 		{
 			nodeModeAction(time/1000.0f, e); 
 			
@@ -105,7 +105,7 @@ public class MoveYawAction extends AbstractInputAction
 			{
 				// Send MSG
 				messageDetail += (messageDir) ? "l" : "r"; // Means of converying yaw direction. 
-				protClient.sendMoveMessage(messageDetail, localDolphinNode.getLocalPosition()); // Network
+				protClient.sendMoveMessage(messageDetail, clientModelNode.getLocalPosition()); // Network
 			}
 		}
 		
