@@ -68,9 +68,10 @@ public class MyGame extends VariableFrameRateGame
 	private RenderWindow renderWindow;
 	private RenderSystem renderSystem;
 
-	ArrayList<String> planetGameRecord = new ArrayList<String>(10);
-	ArrayList<String> prismGameRecord1 = new ArrayList<String>(6); // main prism group.
-	
+	private ArrayList<String> planetGameRecord = new ArrayList<String>(10);
+	private ArrayList<String> prismGameRecord1 = new ArrayList<String>(6); // main prism group.
+	private ArrayList<SceneNode> collisionRecord = new ArrayList<SceneNode>();
+
 	//RotationController rotateController; 
 	//CustomNodeController customController;
 	
@@ -92,11 +93,12 @@ public class MyGame extends VariableFrameRateGame
 	private boolean isClientConnected;
 	private ArrayList<UUID> gameObjectsToRemove;
 	
-	private SceneNode ball1Node, ball2Node, gndNode; // Physics Variables. 
+	private SceneNode ball1Node, ball2Node, gndNode, earthPlanet2Node; // Physics Variables. 
 	private final static String GROUND_E = "Ground";
 	private final static String GROUND_N = "GroundNode";
-	private PhysicsEngine physicsEng; private PhysicsObject ball1PhysObj, ball2PhysObj, gndPlaneP;
-	private boolean running = false;
+	private PhysicsEngine physicsEng; 
+	private PhysicsObject ball1PhysObj, ball2PhysObj, gndPlaneP, earthPhysObj, clientPhysObj;
+	private boolean running = true;
 	
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
@@ -210,13 +212,12 @@ public class MyGame extends VariableFrameRateGame
         myCamera.getFrustum().setFarClipDistance(1000.0f);
     }
 
+	// Goal is to set up Orbit Camera for player 1 (for now).
 	private void setupOrbitCamera(Engine eng, SceneManager sm) 
 	{
-		// Goal is to set up Orbit Camera for player 1 (for now).
 		SceneNode clientN = sm.getSceneNode("clientModelNode");
 		SceneNode cameraN = sm.getSceneNode("MainCameraNode");
 		
-		Camera camera = sm.getCamera("MainCamera"); // view port 0
 		orbitController1 = new Camera3Pcontroller(cameraN, clientN, "keyboard", im, renderSystem, renderWindow);
 	}
     
@@ -224,6 +225,10 @@ public class MyGame extends VariableFrameRateGame
     @Override
     protected void setupScene(Engine eng, SceneManager sm) throws IOException 
     {    	
+    	// Physics Related -> Setting floor limit to falling objects. 
+    	gndNode = sm.getRootSceneNode().createChildSceneNode("GroundLevelPosNode");
+    	gndNode.setLocalPosition(0.0f, 0.0f, 0.0f);
+    	
     	// Setting Up Group Nodes for Hierarchical Objects
     	SceneNode prismNodeGroup = 
     			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");   // Custom Object Group Node
@@ -243,7 +248,7 @@ public class MyGame extends VariableFrameRateGame
         // Set dolphin1 Node to be child of dolphin group node.
         SceneNode clientN = sm.getRootSceneNode().createChildSceneNode(clientE.getName() + "Node"); // clientModelNode
         clientN.setLocalPosition(0.0f, 0.5f, 0.0f);
-        //clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
         //clientN.moveUp(0.5f);
         clientN.moveLeft(0.8f);
         clientN.setLocalScale(0.2f, 0.2f, 0.2f); // SCALE DOWN -> TESTING.
@@ -263,6 +268,10 @@ public class MyGame extends VariableFrameRateGame
         // Set Up Map
         terrainMap = new BasicMap("desert","desertStage_htMap.jpeg","desertTexture.jpeg");
         terrainMap.createMap(eng, sm);
+        
+        // Physics Attempt.
+        initPhysicsSystem();
+        createRagePhysicsWorld();
 		
         // Set Up Control Inputs
     	setupInputs(); // new function (defined below) to set up input actions
@@ -289,7 +298,6 @@ public class MyGame extends VariableFrameRateGame
         //sm.addController(rotateController); // Adds controller to SM.
         //sm.addController(customController);
         
-        //createGameObstacles(eng, sm, prismNodeGroup); // Generate and place objects that hinder player movement.
        
         // Texture Code, Floor Creation, etc -------------------------- 
         
@@ -413,24 +421,31 @@ public class MyGame extends VariableFrameRateGame
 	{ 
 		float mass = 1.0f;
 		float up[] = {0,1,0};
+		float clientHitbox[] = {1.0f, 2.0f, 1.0f};
 		double[] temptf;
 		
-		temptf = toDoubleArray(ball1Node.getLocalTransform().toFloatArray());
-		ball1PhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 2.0f);
-		ball1PhysObj.setBounciness(1.0f);
-		ball1Node.setPhysicsObject(ball1PhysObj);
+		SceneNode earthN = getEngine().getSceneManager().getSceneNode("earthPlanetNode"); 
+		SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode"); // clientPhysObj
+	
+		// Set Up Earth Object. 
+		temptf = toDoubleArray(earthN.getLocalTransform().toFloatArray());
 		
-		temptf = toDoubleArray(ball2Node.getLocalTransform().toFloatArray());
-		ball2PhysObj = physicsEng.addSphereObject(physicsEng.nextUID(),
-		mass, temptf, 2.0f);
-		//ball2PhysicsObj.setBounciness(1.0f);
-		//ball2Node.setPhysicsObject(ball2PhysicsObj);
+		earthPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 1.0f);
+		earthPhysObj.setBounciness(0.5f);
+		earthN.setPhysicsObject(earthPhysObj);
+		
+		// Set up client Object
+		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
+		clientPhysObj = physicsEng.addBoxObject(physicsEng.nextUID(), mass, temptf, clientHitbox);
+		clientPhysObj.setBounciness(0.2f);
+		clientN.setPhysicsObject(clientPhysObj);
+
 		
 		temptf = toDoubleArray(gndNode.getLocalTransform().toFloatArray());
 		gndPlaneP = physicsEng.addStaticPlaneObject(physicsEng.nextUID(), temptf, up, 0.0f);
-		gndPlaneP.setBounciness(1.0f);
+		//gndPlaneP.setBounciness(1.0f);
 		gndNode.scale(3f, .05f, 3f);
-		gndNode.setLocalPosition(0, -7, -2);
+		gndNode.setLocalPosition(0, -7, -2); // was 0, -7, -2
 		gndNode.setPhysicsObject(gndPlaneP);
 		// can also set damping, friction, etc.
 	}
@@ -438,22 +453,118 @@ public class MyGame extends VariableFrameRateGame
 	// Meant to update the Physics World.
 	private void updatePhysicsWorld(float time)
 	{
+		Matrix4 mat;
+		PhysicsObject currentPhysObj;
+		SceneNode pastNode; 
+		
 		if (running)
 		{ 
-			Matrix4 mat;
-			physicsEng.update(time);
-			
+			physicsEng.update(time);  // Needed to Update Physics World. 
+
 			for (SceneNode s : getEngine().getSceneManager().getSceneNodes())
 			{ 
-				if (s.getPhysicsObject() != null)
+				currentPhysObj = s.getPhysicsObject(); // Get SceneNode Physics OBject. 
+				
+				if (currentPhysObj != null)
 				{   
-					mat = Matrix4f.createFrom(toFloatArray(s.getPhysicsObject().getTransform()));
-					s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
+					//System.out.println("PhysObj-transform: " + toFloatArray(currentPhysObj.getTransform()));
+					
+					findCollisionPair(s); 
+					
+					if (s.getName().contains("client"))
+					{
+						mat = s.getLocalTransform();
+						currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
+					}
+					else 
+					{
+						mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
+						s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
+
+						/*
+						 * 	System.out.println("S: " + s.getName() + ", GameLocation: " + s.getLocalPosition());
+							System.out.println("Physics Mat: " + mat.value(0,3)+", "+ mat.value(1,3)+", "+
+											mat.value(2,3));*/
+					}
+
 				} 
 			} 
 		}
+	} // Update Physics Function End. 
+	
+	// Use current node to check all other Nodes that are higher than it on the X axis. 
+	// Stop checking if position of Node/Obj is too far away. 
+	private void findCollisionPair(SceneNode currentNode) 
+	{
+		float curXPos = currentNode.getLocalPosition().x(); 
+		float tempXPos; 
+		boolean condition1 = false, condition2 = false;
+		
+		for (SceneNode s : getEngine().getSceneManager().getSceneNodes())
+		{
+			//iPhysObj = s; // Get SceneNode Physics OBject. 
+			if ((currentNode.getName().contains("Ground")) || (s.getName().contains("Ground"))) 
+			{   break;   }
+			
+			if ((currentNode.getName() != s.getName()) && (s.getPhysicsObject() != null))
+			{ 
+				tempXPos = s.getLocalPosition().x();
+				
+				condition1 = ( (curXPos + 0.1f) > (tempXPos - 0.1f)) ? true : false;
+				condition2 = ( (curXPos - 0.1f) < (tempXPos + 0.1f)) ? true : false;
+				
+				//System.out.println("curXPos: " + curXPos);
+				//System.out.println("tempXPos: " + tempXPos);
+
+				if (condition1 && condition2) // There is a match pair. 
+				{
+					System.out.println("condition1: " + condition1);
+					System.out.println("condition2: " + condition2);
+					
+					System.out.println("currentNode Name(): " + currentNode.getName());
+					System.out.println("s Name: " + s.getName());
+					
+					System.out.println("currentNode Pos: " + currentNode.getLocalPosition());
+					System.out.println("s Pos: " + s.getLocalPosition());
+					
+					collisionRecord.add(currentNode); // Add the matched Pair. 
+					collisionRecord.add(s);
+					handlePossibleCollision(currentNode, s); // Handle collision possibility here. 
+				}
+			}
+		}
+		
+		
 	}
 	
+	// Function to check into if the given pair is colliding, then if so handle it. So that
+	// The next loop doesn't produce any duplicate pairs. 
+	private void handlePossibleCollision(SceneNode initialObj, SceneNode tempObj) 
+	{
+		SceneNode obj1 = collisionRecord.get(0);
+		SceneNode obj2 = collisionRecord.get(1);
+		
+		float curYPos = initialObj.getLocalPosition().y();
+		float tempYPos = tempObj.getLocalPosition().y();
+		
+		float curZPos = initialObj.getLocalPosition().z();
+		float tempZPos = tempObj.getLocalPosition().z();
+		
+		boolean condition3 = ( (curYPos + 0.1f) > (tempYPos - 0.1f)) ? true : false;
+		boolean condition4 = ( (curYPos - 0.1f) < (tempYPos + 0.1f)) ? true : false;
+		
+		boolean condition5 = ( (curZPos + 0.1f) > (tempZPos - 0.1f)) ? true : false;
+		boolean condition6 = ( (curZPos - 0.1f) < (tempZPos + 0.1f)) ? true : false;
+		
+		if (collisionRecord.size() != 0) // Ensure we aren't going through empty list. 
+		{
+			if (condition3 && condition4 && condition5 && condition6)
+			{
+				System.out.println("There is a collising occuring.");
+			}
+		}
+	}
+
 	// Physics Utility Functions
 	private float[] toFloatArray(double[] arr)
 	{ 
@@ -480,6 +591,9 @@ public class MyGame extends VariableFrameRateGame
 		
 		return ret;
 	}
+	public void setPhysicsRun(boolean givenState)
+	{   running = givenState;   }
+	
 	// Physics Utility End.
 	// Physics End.
 
@@ -508,6 +622,8 @@ public class MyGame extends VariableFrameRateGame
 		orbitController1.updateCameraPosition(); // Updates Orbit Controller 
 		
 		generateDeltaTime(elapsTime/1000.0f);    // Updates the player's elapsed time rate for movement.
+		
+		updatePhysicsWorld(elapsTime);
 	}
     
     // Updates the player's elapsed time rate for movement.

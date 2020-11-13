@@ -1,6 +1,7 @@
 package myGameEngine;
 
 import ray.input.action.AbstractInputAction;
+import ray.physics.PhysicsObject;
 import ray.rage.scene.*;
 import ray.rml.*;
 import a3.MyGame;
@@ -11,6 +12,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 {
 	private MyGame localGame = null;
 	private SceneNode clientModelNode = null;
+	private PhysicsObject clientPhysicObj; 
 	private float givenTime = 0.0f;
 	private float [] givenPlaneLoc; 
 	private ProtocolClient protClient;
@@ -22,6 +24,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 		localGame = givenGame; // Purpose: to obtain last elapsed time float via func in MyGame
 		givenPlaneLoc = localGame.obtainPlaneLoc(); 
 		protClient = p;
+		clientPhysicObj = clientModelNode.getPhysicsObject();
 	}
 	
 	// Handles event where controller is acting in node mode. 
@@ -39,6 +42,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 			if (charCommand == 'W')
 			{  
 				clientModelNode.moveForward(deltaPos);
+				//clientPhysicObj.
 				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
 					clientModelNode.moveBackward(deltaPos);
