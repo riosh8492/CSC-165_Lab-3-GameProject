@@ -227,7 +227,7 @@ public class MyGame extends VariableFrameRateGame
     {    	
     	// Physics Related -> Setting floor limit to falling objects. 
     	gndNode = sm.getRootSceneNode().createChildSceneNode("GroundLevelPosNode");
-    	gndNode.setLocalPosition(0.0f, 0.0f, 0.0f);
+    	gndNode.setLocalPosition(0.0f, -0.3f, 0.0f);
     	
     	// Setting Up Group Nodes for Hierarchical Objects
     	SceneNode prismNodeGroup = 
@@ -239,7 +239,7 @@ public class MyGame extends VariableFrameRateGame
     	SceneNode earthN = sm.getRootSceneNode().createChildSceneNode(earthE.getName() + "Node");
     	earthN.attachObject(earthE);
     	earthN.setLocalPosition(0.0f, 0.5f, -1.0f);
-    	earthN.setLocalScale(0.1f, 0.1f, 0.1f);
+    	earthN.scale(0.1f, 0.1f, 0.1f);
 
         // Set Up Model & Texture for Player 1 ---
 		Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
@@ -247,12 +247,11 @@ public class MyGame extends VariableFrameRateGame
         
         // Set dolphin1 Node to be child of dolphin group node.
         SceneNode clientN = sm.getRootSceneNode().createChildSceneNode(clientE.getName() + "Node"); // clientModelNode
-        clientN.setLocalPosition(0.0f, 0.5f, 0.0f);
+
+        clientN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
         clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-        //clientN.moveUp(0.5f);
-        clientN.moveLeft(0.8f);
-        clientN.setLocalScale(0.2f, 0.2f, 0.2f); // SCALE DOWN -> TESTING.
-        clientN.moveBackward(0.5f);
+        clientN.setLocalPosition(0.8f, 0.5f, 0.5f);
+        clientN.scale(0.2f, 0.2f, 0.2f);
         clientN.attachObject(clientE); // Attach node to model entity
         
         TextureManager tm = eng.getTextureManager();
@@ -421,7 +420,7 @@ public class MyGame extends VariableFrameRateGame
 	{ 
 		float mass = 1.0f;
 		float up[] = {0,1,0};
-		float clientHitbox[] = {1.0f, 2.0f, 1.0f};
+		float clientHitbox[] = {0.8f, 2.0f, 1.8f};
 		double[] temptf;
 		
 		SceneNode earthN = getEngine().getSceneManager().getSceneNode("earthPlanetNode"); 
@@ -429,23 +428,24 @@ public class MyGame extends VariableFrameRateGame
 	
 		// Set Up Earth Object. 
 		temptf = toDoubleArray(earthN.getLocalTransform().toFloatArray());
-		
-		earthPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 1.0f);
+		earthPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
 		earthPhysObj.setBounciness(0.5f);
-		earthN.setPhysicsObject(earthPhysObj);
 		
+		earthN.setPhysicsObject(earthPhysObj);
+				
 		// Set up client Object
 		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
-		clientPhysObj = physicsEng.addBoxObject(physicsEng.nextUID(), mass, temptf, clientHitbox);
-		clientPhysObj.setBounciness(0.2f);
+		clientPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.2f);
+		clientPhysObj.setBounciness(0.5f);
 		clientN.setPhysicsObject(clientPhysObj);
-
+		
 		
 		temptf = toDoubleArray(gndNode.getLocalTransform().toFloatArray());
 		gndPlaneP = physicsEng.addStaticPlaneObject(physicsEng.nextUID(), temptf, up, 0.0f);
+		gndPlaneP.setFriction(0.5f);
 		//gndPlaneP.setBounciness(1.0f);
 		gndNode.scale(3f, .05f, 3f);
-		gndNode.setLocalPosition(0, -7, -2); // was 0, -7, -2
+		gndNode.setLocalPosition(0.0f, 0.0f, 0.0f); // was 0, -7, -2
 		gndNode.setPhysicsObject(gndPlaneP);
 		// can also set damping, friction, etc.
 	}
@@ -455,7 +455,6 @@ public class MyGame extends VariableFrameRateGame
 	{
 		Matrix4 mat;
 		PhysicsObject currentPhysObj;
-		SceneNode pastNode; 
 		
 		if (running)
 		{ 
@@ -502,7 +501,8 @@ public class MyGame extends VariableFrameRateGame
 		
 		for (SceneNode s : getEngine().getSceneManager().getSceneNodes())
 		{
-			//iPhysObj = s; // Get SceneNode Physics OBject. 
+			float bounds = 0.3f;
+			
 			if ((currentNode.getName().contains("Ground")) || (s.getName().contains("Ground"))) 
 			{   break;   }
 			
@@ -510,22 +510,19 @@ public class MyGame extends VariableFrameRateGame
 			{ 
 				tempXPos = s.getLocalPosition().x();
 				
-				condition1 = ( (curXPos + 0.1f) > (tempXPos - 0.1f)) ? true : false;
-				condition2 = ( (curXPos - 0.1f) < (tempXPos + 0.1f)) ? true : false;
-				
-				//System.out.println("curXPos: " + curXPos);
-				//System.out.println("tempXPos: " + tempXPos);
-
+				condition1 = ( (curXPos + bounds) > (tempXPos - bounds)) ? true : false;
+				condition2 = ( (curXPos - bounds) < (tempXPos + bounds)) ? true : false;
+		
 				if (condition1 && condition2) // There is a match pair. 
 				{
-					System.out.println("condition1: " + condition1);
-					System.out.println("condition2: " + condition2);
+					//System.out.println("condition1: " + condition1);
+					//System.out.println("condition2: " + condition2);
 					
-					System.out.println("currentNode Name(): " + currentNode.getName());
-					System.out.println("s Name: " + s.getName());
+					//System.out.println("currentNode Name(): " + currentNode.getName());
+					//System.out.println("s Name: " + s.getName());
 					
-					System.out.println("currentNode Pos: " + currentNode.getLocalPosition());
-					System.out.println("s Pos: " + s.getLocalPosition());
+					//System.out.println("currentNode Pos: " + currentNode.getLocalPosition());
+					//System.out.println("s Pos: " + s.getLocalPosition());
 					
 					collisionRecord.add(currentNode); // Add the matched Pair. 
 					collisionRecord.add(s);
@@ -533,14 +530,13 @@ public class MyGame extends VariableFrameRateGame
 				}
 			}
 		}
-		
-		
 	}
 	
 	// Function to check into if the given pair is colliding, then if so handle it. So that
 	// The next loop doesn't produce any duplicate pairs. 
 	private void handlePossibleCollision(SceneNode initialObj, SceneNode tempObj) 
 	{
+		float bounds = 0.3f; 
 		SceneNode obj1 = collisionRecord.get(0);
 		SceneNode obj2 = collisionRecord.get(1);
 		
@@ -550,11 +546,11 @@ public class MyGame extends VariableFrameRateGame
 		float curZPos = initialObj.getLocalPosition().z();
 		float tempZPos = tempObj.getLocalPosition().z();
 		
-		boolean condition3 = ( (curYPos + 0.1f) > (tempYPos - 0.1f)) ? true : false;
-		boolean condition4 = ( (curYPos - 0.1f) < (tempYPos + 0.1f)) ? true : false;
+		boolean condition3 = ( (curYPos + bounds) > (tempYPos - bounds)) ? true : false;
+		boolean condition4 = ( (curYPos - bounds) < (tempYPos + bounds)) ? true : false;
 		
-		boolean condition5 = ( (curZPos + 0.1f) > (tempZPos - 0.1f)) ? true : false;
-		boolean condition6 = ( (curZPos - 0.1f) < (tempZPos + 0.1f)) ? true : false;
+		boolean condition5 = ( (curZPos + bounds) > (tempZPos - bounds)) ? true : false;
+		boolean condition6 = ( (curZPos - bounds) < (tempZPos + bounds)) ? true : false;
 		
 		if (collisionRecord.size() != 0) // Ensure we aren't going through empty list. 
 		{
@@ -563,6 +559,7 @@ public class MyGame extends VariableFrameRateGame
 				System.out.println("There is a collising occuring.");
 			}
 		}
+		collisionRecord.clear(); // Empty out collision record.
 	}
 
 	// Physics Utility Functions
@@ -593,6 +590,9 @@ public class MyGame extends VariableFrameRateGame
 	}
 	public void setPhysicsRun(boolean givenState)
 	{   running = givenState;   }
+	
+	public boolean getPhysicsRun()
+	{   return running;         }
 	
 	// Physics Utility End.
 	// Physics End.

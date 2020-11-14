@@ -12,7 +12,8 @@ public class MoveFrontBackAction extends AbstractInputAction
 {
 	private MyGame localGame = null;
 	private SceneNode clientModelNode = null;
-	private PhysicsObject clientPhysicObj; 
+	private PhysicsObject clientPhysObj;
+	private boolean physicsOn = false; 
 	private float givenTime = 0.0f;
 	private float [] givenPlaneLoc; 
 	private ProtocolClient protClient;
@@ -24,7 +25,8 @@ public class MoveFrontBackAction extends AbstractInputAction
 		localGame = givenGame; // Purpose: to obtain last elapsed time float via func in MyGame
 		givenPlaneLoc = localGame.obtainPlaneLoc(); 
 		protClient = p;
-		clientPhysicObj = clientModelNode.getPhysicsObject();
+		clientPhysObj = clientModelNode.getPhysicsObject();
+		physicsOn = localGame.getPhysicsRun(); 
 	}
 	
 	// Handles event where controller is acting in node mode. 
@@ -41,13 +43,18 @@ public class MoveFrontBackAction extends AbstractInputAction
 		{
 			if (charCommand == 'W')
 			{  
-				clientModelNode.moveForward(deltaPos);
-				//clientPhysicObj.
-				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
+				if (physicsOn == true)
 				{
-					clientModelNode.moveBackward(deltaPos);
+					clientModelNode.moveForward(deltaPos);
+					if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
+					{
+						clientModelNode.moveBackward(deltaPos);
+					}
 				}
-			
+				else if (physicsOn)
+				{
+					//clientPhysObj.
+				}
 			}
 			else
 			{  	
