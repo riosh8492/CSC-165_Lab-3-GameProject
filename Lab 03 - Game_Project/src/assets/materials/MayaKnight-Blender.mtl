@@ -1,8 +1,8 @@
-# Blender MTL File: 'base_avatar_01'
+# Blender MTL File: 'MayaKnight-Blender'
 # Material Count: 1
 
-newmtl Material
-Ns 60
+newmtl initialShadingGroup
+Ns 60.000000
 Ka 1.000000 1.000000 1.000000
 Kd 0.800000 0.800000 0.800000
 Ks 0.500000 0.500000 0.500000
@@ -11,4 +11,4 @@ Ni 1.450000
 d 1.000000
 illum 2
 # texture
-map_Kd RacoonModelUV.png
+map_Kd blender_MKnight_UV_texture.png

@@ -32,9 +32,11 @@ public class MoveFrontBackAction extends AbstractInputAction
 	// Handles event where controller is acting in node mode. 
 	public void nodeModeAction(float time, Event e)
 	{
+		Vector3f localPos = (Vector3f) clientModelNode.getLocalPosition();
 		String command = e.getComponent().getName();
 		char charCommand = command.charAt(0);
 		float stickValue = e.getValue();
+		float force = 0.5f; 
 		
 		float deltaRate = time - givenTime; // Used to manage consistent elapsed time movement.
 		float deltaPos = deltaRate * 0.5f;  // Movement change
@@ -53,7 +55,8 @@ public class MoveFrontBackAction extends AbstractInputAction
 				}
 				else if (physicsOn)
 				{
-					//clientPhysObj.
+					clientPhysObj.applyForce(0, 0, -force, 
+							localPos.x(), localPos.y(), localPos.z()); 
 				}
 			}
 			else

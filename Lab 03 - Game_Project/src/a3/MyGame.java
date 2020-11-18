@@ -93,11 +93,13 @@ public class MyGame extends VariableFrameRateGame
 	private boolean isClientConnected;
 	private ArrayList<UUID> gameObjectsToRemove;
 	
-	private SceneNode ball1Node, ball2Node, gndNode, earthPlanet2Node; // Physics Variables. 
+	private SceneNode gndNode, statNetNode; // Physics Variables. 
 	private final static String GROUND_E = "Ground";
 	private final static String GROUND_N = "GroundNode";
 	private PhysicsEngine physicsEng; 
-	private PhysicsObject ball1PhysObj, ball2PhysObj, gndPlaneP, earthPhysObj, clientPhysObj;
+	private PhysicsObject ball1PhysObj, ball2PhysObj;
+	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj;
+	private double[] netPosTransform; 
 	private boolean running = true;
 	
     public MyGame(String serverAddr, int sPort, String placeHolder)
@@ -229,38 +231,52 @@ public class MyGame extends VariableFrameRateGame
     	gndNode = sm.getRootSceneNode().createChildSceneNode("GroundLevelPosNode");
     	gndNode.setLocalPosition(0.0f, -0.3f, 0.0f);
     	
-    	// Setting Up Group Nodes for Hierarchical Objects
-    	SceneNode prismNodeGroup = 
-    			sm.getRootSceneNode().createChildSceneNode("myPrismNodeGroup");   // Custom Object Group Node
+    	statNetNode = sm.getRootSceneNode().createChildSceneNode("StaticNetNode");
+    	statNetNode.setLocalPosition(0.0f, 2.0f, -2.0f);
     	
-    	// Set Up Earth Object. 
-    	Entity earthE = sm.createEntity("earthPlanet", "earth.obj");
-    	earthE.setPrimitive(Primitive.TRIANGLES);
-    	SceneNode earthN = sm.getRootSceneNode().createChildSceneNode(earthE.getName() + "Node");
-    	earthN.attachObject(earthE);
-    	earthN.setLocalPosition(0.0f, 0.5f, -1.0f);
-    	earthN.scale(0.1f, 0.1f, 0.1f);
-
+    	// Set Up Game Ball Object. 
+    	Entity sphereE = sm.createEntity("gameBall", "blender_gem01.obj"); // Was: "earth.obj"
+    	sphereE.setPrimitive(Primitive.TRIANGLES);
+    	SceneNode sphereN = sm.getRootSceneNode().createChildSceneNode(sphereE.getName() + "Node");
+    	sphereN.attachObject(sphereE);
+    	sphereN.setLocalPosition(0.0f, 0.5f, 1.1f);
+    	//sphereN.scale(0.1f, 0.1f, 0.1f);
+  
+        
+        // Set up Net Object. -----------------------
+        Entity courtNetE = sm.createEntity("courtNetModel", "blender-Net.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+        courtNetE.setPrimitive(Primitive.TRIANGLES);
+        
+        SceneNode courtNetN = sm.getRootSceneNode().createChildSceneNode(courtNetE.getName() + "Node");
+        courtNetN.setLocalPosition(0.0f, 2.0f, 0.0f);
+        //courtNetN.rotate(Degreef.createFrom(90.0f), courtNetN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        //courtNetN.scale(0.15f, 0.15f, 0.15f);
+        //courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
+        courtNetN.attachObject(courtNetE);
+        // End of Set up Net Object. -----------------
+        
+        // Set Up other NPC Model Obj 1 -------------
+        Entity knightE = sm.createEntity("npc_knight", "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+        knightE.setPrimitive(Primitive.TRIANGLES);
+        
+        SceneNode knightN = sm.getRootSceneNode().createChildSceneNode(knightE.getName() + "Node");
+        knightN.setLocalPosition(3.0f, 0.5f, -1.0f);
+        knightN.scale(0.08f, 0.08f, 0.08f);
+        knightN.attachObject(knightE);
+        // Set Up other NPC Model Obj 1 -----End-----
+        
+        
         // Set Up Model & Texture for Player 1 ---
 		Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
 		clientE.setPrimitive(Primitive.TRIANGLES);
         
-        // Set dolphin1 Node to be child of dolphin group node.
+        // Set client Node
         SceneNode clientN = sm.getRootSceneNode().createChildSceneNode(clientE.getName() + "Node"); // clientModelNode
-
         clientN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
         clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-        clientN.setLocalPosition(0.8f, 0.5f, 0.5f);
-        clientN.scale(0.2f, 0.2f, 0.2f);
-        clientN.attachObject(clientE); // Attach node to model entity
-        
-        TextureManager tm = eng.getTextureManager();
-        Texture mainTexture = tm.getAssetByPath("RacoonModelUV.png"); // CubModelUV.png - Dolphin_HighPolyUV.png
-        RenderSystem rs = sm.getRenderSystem();
-        TextureState state = (TextureState) 
-        		rs.createRenderState(RenderState.Type.TEXTURE);
-        state.setTexture(mainTexture);
-        clientE.setRenderState(state);
+        clientN.setLocalPosition(0.0f, 0.5f, 2.5f);
+        //clientN.scale(0.2f, 0.2f, 0.2f);
+        clientN.attachObject(clientE);
 		        
         // Set Up SkyBox/Map
         skyBox = new BasicSkyBox(eng, "desert");
@@ -297,23 +313,6 @@ public class MyGame extends VariableFrameRateGame
         //sm.addController(rotateController); // Adds controller to SM.
         //sm.addController(customController);
         
-       
-        // Texture Code, Floor Creation, etc -------------------------- 
-        
-        // Floor Creation 
-        /*/ Set Up Floor Manual Object Plane
-        ManualObject floor = new GroundPlaneObject().gameFloorObject(eng, sm, "gameFloor"); // Returns custom object data 
-        SceneNode floorN = sm.getRootSceneNode().createChildSceneNode("gameFloorNode");
-        floorN.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]); // planeLoc
-        floorN.scale(1.0f, 6.0f, 1.0f);
-        floorN.attachObject(floor);
-        
-        // Set Up Floor Manual Object Plane
-        ManualObject floor2 = new GroundPlaneObject().gameFloorObject2(eng, sm, "gameFloor2"); // Returns custom object data 
-        SceneNode floorN2 = sm.getRootSceneNode().createChildSceneNode("gameFloorNode2");
-        floorN2.setLocalPosition(planeLoc[0], planeLoc[1], planeLoc[2]);
-        floorN2.scale(1.0f, 6.0f, 1.0f);
-        floorN2.attachObject(floor2); // */
     }
 
 	protected void setupInputs()
@@ -421,30 +420,46 @@ public class MyGame extends VariableFrameRateGame
 		float mass = 1.0f;
 		float up[] = {0,1,0};
 		float clientHitbox[] = {0.8f, 2.0f, 1.8f};
+		float courtNetHitbox[] = {4.5f, 3.0f, 0.3f};
 		double[] temptf;
 		
-		SceneNode earthN = getEngine().getSceneManager().getSceneNode("earthPlanetNode"); 
+		SceneNode gameBallN = getEngine().getSceneManager().getSceneNode("gameBallNode"); 
 		SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode"); // clientPhysObj
+		SceneNode courtNetN = getEngine().getSceneManager().getSceneNode("courtNetModelNode"); 
+
 	
-		// Set Up Earth Object. 
-		temptf = toDoubleArray(earthN.getLocalTransform().toFloatArray());
-		earthPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
-		earthPhysObj.setBounciness(0.5f);
-		
-		earthN.setPhysicsObject(earthPhysObj);
+		// Set Up Game Ball Object. 
+		temptf = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
+		gameBallPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
+		gameBallPhysObj.setBounciness(1.0f);
+		gameBallN.scale(0.1f, 0.1f, 0.1f);
+		gameBallN.setPhysicsObject(gameBallPhysObj);
 				
 		// Set up client Object
 		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
-		clientPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.2f);
+		clientPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.2f); // 0.2f w sphere.
 		clientPhysObj.setBounciness(0.5f);
+		clientN.scale(0.2f, 0.2f, 0.2f);
 		clientN.setPhysicsObject(clientPhysObj);
 		
+		// Set up Court Net Object
+		//courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
+		temptf = toDoubleArray(statNetNode.getLocalTransform().toFloatArray());
+		netPosTransform = toDoubleArray(statNetNode.getLocalTransform().toFloatArray());
+		courtNetPhysObj = physicsEng.addBoxObject(physicsEng.nextUID(), mass, temptf, courtNetHitbox); // 0.2f w sphere.
+		courtNetPhysObj.setBounciness(-1.0f);
+		courtNetN.setLocalPosition(0.0f, 1.0f, 0.0f);
+		courtNetN.rotate(Degreef.createFrom(90.0f), courtNetN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+		courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
+		courtNetN.scale(0.15f, 0.15f, 0.15f);
+		courtNetN.setPhysicsObject(courtNetPhysObj);
+
 		
 		temptf = toDoubleArray(gndNode.getLocalTransform().toFloatArray());
 		gndPlaneP = physicsEng.addStaticPlaneObject(physicsEng.nextUID(), temptf, up, 0.0f);
-		gndPlaneP.setFriction(0.5f);
+		gndPlaneP.setFriction(0.2f);
 		//gndPlaneP.setBounciness(1.0f);
-		gndNode.scale(3f, .05f, 3f);
+		gndNode.scale(10f, .05f, 10f);
 		gndNode.setLocalPosition(0.0f, 0.0f, 0.0f); // was 0, -7, -2
 		gndNode.setPhysicsObject(gndPlaneP);
 		// can also set damping, friction, etc.
@@ -463,27 +478,31 @@ public class MyGame extends VariableFrameRateGame
 			for (SceneNode s : getEngine().getSceneManager().getSceneNodes())
 			{ 
 				currentPhysObj = s.getPhysicsObject(); // Get SceneNode Physics OBject. 
-				
+
 				if (currentPhysObj != null)
 				{   
 					//System.out.println("PhysObj-transform: " + toFloatArray(currentPhysObj.getTransform()));
 					
-					findCollisionPair(s); 
+					//mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
+					//s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
 					
-					if (s.getName().contains("client"))
+					//findCollisionPair(s); 
+					
+					if (s.getName().contains("client"))// || s.getName().contains("Net"))
 					{
 						mat = s.getLocalTransform();
 						currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
+					}
+					else if (s.getName().contains("Net"))
+					{
+						currentPhysObj.setTransform(netPosTransform); // Takes in: Double []
 					}
 					else 
 					{
 						mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
 						s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
+						
 
-						/*
-						 * 	System.out.println("S: " + s.getName() + ", GameLocation: " + s.getLocalPosition());
-							System.out.println("Physics Mat: " + mat.value(0,3)+", "+ mat.value(1,3)+", "+
-											mat.value(2,3));*/
 					}
 
 				} 
@@ -683,7 +702,129 @@ public class MyGame extends VariableFrameRateGame
 	    }
 	    gameObjectsToRemove.clear();
     }
-    
+
+	
+	// Holds the operation of the Distance formula
+	private float returnDistance(Vector3f p1, Vector3f p2)
+	{
+		float x = (p1.x() - p2.x()), 
+	    	  y = (p1.y() - p2.y()), 
+	    	  z = (p1.z() - p2.z());
+		
+		float distance = (float) Math.sqrt((x*x) + (y*y) + (z*z));
+		
+		return distance;
+	}
+	
+	public float obtainTime1() 
+	{
+		// returns the time of the last update call
+		return time1;
+	}
+	public float[] obtainPlaneLoc()
+	{
+		// Returns the limit of dolphin movement.
+		return planeLoc;
+	}
+
+	// Network Used Function - Connection Status Setter*
+	public void setIsConnected(boolean b) 
+	{
+		// Info returned from the UDP Client manager.
+		isClientConnected = b;
+	}
+
+	// * Assuming we are making a one view person game with networking, 
+	// There will be only consistent player to refer to .
+	// For now, I'm passing localDolphin pos. 
+	public Vector3f getPlayerPosition() 
+	{
+		// return DolphinPos.
+    	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
+
+		return (Vector3f) dolphinN.getLocalPosition();
+	}
+	
+	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
+	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
+	{ 
+    	SceneManager sm = getEngine().getSceneManager();
+
+		if (avatar != null)
+		{ 
+			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "MayaKnight-Blender.obj");
+			ghostE.setPrimitive(Primitive.TRIANGLES);
+			
+			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
+			ghostN.attachObject(ghostE);
+			ghostN.setLocalPosition(avatar.obtainGhostPosition());
+			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+			avatar.setGhostNode(ghostN);
+			avatar.setGhostEntity(ghostE);
+			
+			TextureManager tm = getEngine().getTextureManager();
+	        Texture mainTexture = tm.getAssetByPath("blender_MKnight_UV_texture.png"); // CubModelUV.png - Dolphin_HighPolyUV.png
+	        RenderSystem rs = sm.getRenderSystem();
+	        TextureState state = (TextureState) 
+	        		rs.createRenderState(RenderState.Type.TEXTURE);
+	        state.setTexture(mainTexture);
+	        ghostE.setRenderState(state);
+	        
+			System.out.println("LocalGame -> Ghost Creation Name: " + ghostN.getName());
+		} 
+	}
+	
+	// Searches and updates the local ghost avatar based on given info. 
+	public void updateGhostAvatar(UUID ghostID, Vector3f newPos)
+	{
+    	String GhostNodeName = "Ghost_ID:" + ghostID.toString() + ":Node";
+    	SceneManager sm = getEngine().getSceneManager();
+    	SceneNode oldGhost = sm.getSceneNode(GhostNodeName);
+
+    	//System.out.println("* * * Trying to reposition Ghost. Name: " + GhostNodeName);
+
+    	if (oldGhost != null)
+    	{
+        	oldGhost.setLocalPosition(newPos); // Set node's world position 
+    	}
+    	else
+		{   System.out.println("* * * Error in MyGame.updateGhostAvatar - OldGhost => Null");   }
+	}
+
+	// Updates given Ghost via ID by rotation/yaw. moveIndictor format: rotateU/D, or yawL/R.
+	// Last char determine which direction to pitch or yaw
+	public void updateRotateGhostAvatar(UUID ghostID, String moveIndictor)
+	{
+		char direction = moveIndictor.charAt(moveIndictor.length() - 1); 
+		float standardRate = (direction == 'u' || direction == 'l') ? 1.0f : -1.0f;
+
+		String givenID = ghostID.toString();
+    	SceneManager sm = getEngine().getSceneManager();
+    	SceneNode oldGhost = sm.getSceneNode("Ghost_ID:" + givenID + ":Node");
+
+    	Vector3 globalY = Vector3f.createFrom(0.0f, 1.0f, 0.0f); // Yaw variables.  
+		Matrix3 matRot; 
+
+    	Angle turnRate = Degreef.createFrom(elapsedTimeHolder + standardRate); // Based on elapsed time.
+
+    	if (moveIndictor.contains("pitch"))
+    	{
+    		oldGhost.pitch(turnRate);   // rate -> turn directions based on passed value by client who sent move update
+    	}
+    	else if (moveIndictor.contains("yaw")) // May need to change this. 
+    	{
+    		matRot = Matrix3f.createRotationFrom(Degreef.createFrom(turnRate), globalY);
+    		oldGhost.setLocalRotation(matRot.mult(oldGhost.getWorldRotation()));
+    	}
+	}
+			
+	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)
+	{ 
+		if(avatar != null) 
+		{   gameObjectsToRemove.add(avatar.obtainGhostID());   }
+	}
+	
+	// NONE USE FUNCTIONS
     // Creates groups of hierarchical objects. 
 	private void createGameObstacles(Engine eng, SceneManager sm, SceneNode givenNodeGroup) throws IOException 
 	{
@@ -761,118 +902,6 @@ public class MyGame extends VariableFrameRateGame
     	}
     	
 		return false;
-	}
-
-	
-	// Holds the operation of the Distance formula
-	private float returnDistance(Vector3f p1, Vector3f p2)
-	{
-		float x = (p1.x() - p2.x()), 
-	    	  y = (p1.y() - p2.y()), 
-	    	  z = (p1.z() - p2.z());
-		
-		float distance = (float) Math.sqrt((x*x) + (y*y) + (z*z));
-		
-		return distance;
-	}
-	
-	public float obtainTime1() 
-	{
-		// returns the time of the last update call
-		return time1;
-	}
-	public float[] obtainPlaneLoc()
-	{
-		// Returns the limit of dolphin movement.
-		return planeLoc;
-	}
-
-	// Network Used Function - Connection Status Setter*
-	public void setIsConnected(boolean b) 
-	{
-		// Info returned from the UDP Client manager.
-		isClientConnected = b;
-	}
-
-	// * Assuming we are making a one view person game with networking, 
-	// There will be only consistent player to refer to .
-	// For now, I'm passing localDolphin pos. 
-	public Vector3f getPlayerPosition() 
-	{
-		// return DolphinPos.
-    	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-
-		return (Vector3f) dolphinN.getLocalPosition();
-	}
-	
-	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
-	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
-	{ 
-    	SceneManager sm = getEngine().getSceneManager();
-
-		if (avatar != null)
-		{ 
-			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "dolphinHighPoly.obj");
-			ghostE.setPrimitive(Primitive.TRIANGLES);
-			
-			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
-			ghostN.attachObject(ghostE);
-			ghostN.setLocalPosition(avatar.obtainGhostPosition());
-			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-			avatar.setGhostNode(ghostN);
-			avatar.setGhostEntity(ghostE);
-			System.out.println("LocalGame -> Ghost Creation Name: " + ghostN.getName());
-		} 
-	}
-	
-	// Searches and updates the local ghost avatar based on given info. 
-	public void updateGhostAvatar(UUID ghostID, Vector3f newPos)
-	{
-    	String GhostNodeName = "Ghost_ID:" + ghostID.toString() + ":Node";
-    	SceneManager sm = getEngine().getSceneManager();
-    	SceneNode oldGhost = sm.getSceneNode(GhostNodeName);
-
-    	//System.out.println("* * * Trying to reposition Ghost. Name: " + GhostNodeName);
-
-    	if (oldGhost != null)
-    	{
-        	oldGhost.setLocalPosition(newPos); // Set node's world position 
-    	}
-    	else
-		{   System.out.println("* * * Error in MyGame.updateGhostAvatar - OldGhost => Null");   }
-	}
-
-	// Updates given Ghost via ID by rotation/yaw. moveIndictor format: rotateU/D, or yawL/R.
-	// Last char determine which direction to pitch or yaw
-	public void updateRotateGhostAvatar(UUID ghostID, String moveIndictor)
-	{
-		char direction = moveIndictor.charAt(moveIndictor.length() - 1); 
-		float standardRate = (direction == 'u' || direction == 'l') ? 1.0f : -1.0f;
-
-		String givenID = ghostID.toString();
-    	SceneManager sm = getEngine().getSceneManager();
-    	SceneNode oldGhost = sm.getSceneNode("Ghost_ID:" + givenID + ":Node");
-
-    	Vector3 globalY = Vector3f.createFrom(0.0f, 1.0f, 0.0f); // Yaw variables.  
-		Matrix3 matRot; 
-
-    	Angle turnRate = Degreef.createFrom(elapsedTimeHolder + standardRate); // Based on elapsed time.
-
-    	if (moveIndictor.contains("pitch"))
-    	{
-    		oldGhost.pitch(turnRate);   // rate -> turn directions based on passed value by client who sent move update
-    	}
-    	else if (moveIndictor.contains("yaw")) // May need to change this. 
-    	{
-    		matRot = Matrix3f.createRotationFrom(Degreef.createFrom(turnRate), globalY);
-    		oldGhost.setLocalRotation(matRot.mult(oldGhost.getWorldRotation()));
-    	}
-	}
-			
-	public void removeGhostAvatarFromGameWorld(GhostAvatar avatar)
-	{ 
-		if(avatar != null) 
-		{   gameObjectsToRemove.add(avatar.obtainGhostID());   }
 	}
 	
 }
