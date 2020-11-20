@@ -101,6 +101,7 @@ public class MyGame extends VariableFrameRateGame
 	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj;
 	private double[] netPosTransform; 
 	private boolean running = true;
+	private float ballAngle = 0.0f;
 	
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
@@ -447,7 +448,7 @@ public class MyGame extends VariableFrameRateGame
 		temptf = toDoubleArray(statNetNode.getLocalTransform().toFloatArray());
 		netPosTransform = toDoubleArray(statNetNode.getLocalTransform().toFloatArray());
 		courtNetPhysObj = physicsEng.addBoxObject(physicsEng.nextUID(), mass, temptf, courtNetHitbox); // 0.2f w sphere.
-		courtNetPhysObj.setBounciness(-1.0f);
+		courtNetPhysObj.setBounciness(1.0f);
 		courtNetN.setLocalPosition(0.0f, 1.0f, 0.0f);
 		courtNetN.rotate(Degreef.createFrom(90.0f), courtNetN.getLocalPosition()); // Trying to position the dolphin to face -z axis
 		courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
@@ -470,6 +471,7 @@ public class MyGame extends VariableFrameRateGame
 	{
 		Matrix4 mat;
 		PhysicsObject currentPhysObj;
+		Angle angle = Degreef.createFrom(ballAngle);
 		
 		if (running)
 		{ 
@@ -486,7 +488,7 @@ public class MyGame extends VariableFrameRateGame
 					//mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
 					//s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
 					
-					//findCollisionPair(s); 
+					findCollisionPair(s); 
 					
 					if (s.getName().contains("client"))// || s.getName().contains("Net"))
 					{
@@ -500,8 +502,13 @@ public class MyGame extends VariableFrameRateGame
 					else 
 					{
 						mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
-						s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
 						
+						s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
+						if (s.getName().contains("Ball"))
+						{
+							s.rotate(angle, (Vector3) Vector3f.createFrom(0.0f, 1.0f, 0.0f));
+							ballAngle -= (ballAngle <= 0.0f) ? 0.0f : 0.01f;
+						}
 
 					}
 
@@ -509,6 +516,7 @@ public class MyGame extends VariableFrameRateGame
 			} 
 		}
 	} // Update Physics Function End. 
+	
 	
 	// Use current node to check all other Nodes that are higher than it on the X axis. 
 	// Stop checking if position of Node/Obj is too far away. 
@@ -559,6 +567,9 @@ public class MyGame extends VariableFrameRateGame
 		SceneNode obj1 = collisionRecord.get(0);
 		SceneNode obj2 = collisionRecord.get(1);
 		
+		PhysicsObject objPhys1 = initialObj.getPhysicsObject(); 
+		PhysicsObject objPhys2 = tempObj.getPhysicsObject();
+		
 		float curYPos = initialObj.getLocalPosition().y();
 		float tempYPos = tempObj.getLocalPosition().y();
 		
@@ -576,6 +587,19 @@ public class MyGame extends VariableFrameRateGame
 			if (condition3 && condition4 && condition5 && condition6)
 			{
 				System.out.println("There is a collising occuring.");
+				
+				if (initialObj.getName().contains("Ball"))
+				{   
+					System.out.println("Ball encountered.");
+					objPhys1.applyTorque(1.0f, 0.0f, 0.0f);
+					ballAngle = 1.0f;
+				}
+				else if (tempObj.getName().contains("Ball"))
+				{   
+					System.out.println("Ball encountered.");
+					objPhys2.applyTorque(1.0f, 0.0f, 0.0f); 
+					ballAngle = 1.5f;
+				}
 			}
 		}
 		collisionRecord.clear(); // Empty out collision record.
