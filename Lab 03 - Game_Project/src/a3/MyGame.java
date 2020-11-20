@@ -98,7 +98,7 @@ public class MyGame extends VariableFrameRateGame
 	private final static String GROUND_N = "GroundNode";
 	private PhysicsEngine physicsEng; 
 	private PhysicsObject ball1PhysObj, ball2PhysObj;
-	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj;
+	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj, npcKnightPhysObj;
 	private double[] netPosTransform; 
 	private boolean running = true;
 	private float ballAngle = 0.0f;
@@ -262,7 +262,7 @@ public class MyGame extends VariableFrameRateGame
         
         SceneNode knightN = sm.getRootSceneNode().createChildSceneNode(knightE.getName() + "Node");
         knightN.setLocalPosition(3.0f, 0.5f, -1.0f);
-        knightN.scale(0.08f, 0.08f, 0.08f);
+        //knightN.scale(0.08f, 0.08f, 0.08f);
         knightN.attachObject(knightE);
         // Set Up other NPC Model Obj 1 -----End-----
         
@@ -427,14 +427,21 @@ public class MyGame extends VariableFrameRateGame
 		SceneNode gameBallN = getEngine().getSceneManager().getSceneNode("gameBallNode"); 
 		SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode"); // clientPhysObj
 		SceneNode courtNetN = getEngine().getSceneManager().getSceneNode("courtNetModelNode"); 
-
+		SceneNode npcKnightN = getEngine().getSceneManager().getSceneNode("npc_knightNode");
 	
 		// Set Up Game Ball Object. 
 		temptf = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
 		gameBallPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
-		gameBallPhysObj.setBounciness(1.0f);
+		gameBallPhysObj.setBounciness(1.5f);
 		gameBallN.scale(0.1f, 0.1f, 0.1f);
 		gameBallN.setPhysicsObject(gameBallPhysObj);
+		
+		// Set Up Physics NPC Object
+		temptf = toDoubleArray(npcKnightN.getLocalTransform().toFloatArray());
+		npcKnightPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.7f);
+		npcKnightPhysObj.setBounciness(0.5f);
+		npcKnightN.scale(0.08f, 0.08f, 0.08f);
+		npcKnightN.setPhysicsObject(npcKnightPhysObj);
 				
 		// Set up client Object
 		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
@@ -586,17 +593,17 @@ public class MyGame extends VariableFrameRateGame
 		{
 			if (condition3 && condition4 && condition5 && condition6)
 			{
-				System.out.println("There is a collising occuring.");
+				System.out.println("Collising occuring.");
 				
 				if (initialObj.getName().contains("Ball"))
 				{   
-					System.out.println("Ball encountered.");
+					//System.out.println("Ball encountered.");
 					objPhys1.applyTorque(1.0f, 0.0f, 0.0f);
 					ballAngle = 1.0f;
 				}
 				else if (tempObj.getName().contains("Ball"))
 				{   
-					System.out.println("Ball encountered.");
+					//System.out.println("Ball encountered.");
 					objPhys2.applyTorque(1.0f, 0.0f, 0.0f); 
 					ballAngle = 1.5f;
 				}

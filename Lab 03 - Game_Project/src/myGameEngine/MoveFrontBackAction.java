@@ -48,24 +48,19 @@ public class MoveFrontBackAction extends AbstractInputAction
 				if (physicsOn == true)
 				{
 					clientModelNode.moveForward(deltaPos);
-					if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
+					/*/if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 					{
 						clientModelNode.moveBackward(deltaPos);
-					}
-				}
-				else if (physicsOn)
-				{
-					clientPhysObj.applyForce(0, 0, -force, 
-							localPos.x(), localPos.y(), localPos.z()); 
+					}//*/
 				}
 			}
 			else
 			{  	
 				clientModelNode.moveBackward(deltaPos);
-				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
+				/*/if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
 					clientModelNode.moveForward(deltaPos);
-				}
+				}//*/
 				
 			}
 		}
@@ -74,18 +69,18 @@ public class MoveFrontBackAction extends AbstractInputAction
 			if (stickValue > 0.0f)
 			{  
 				clientModelNode.moveBackward(deltaPos);  
-				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
+				/*/if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
 					clientModelNode.moveForward(deltaPos);
-				}
+				}//*/
 			}
 			else if (stickValue < 0.0f)
 			{  
 				clientModelNode.moveForward(deltaPos); 
-				if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
+				/*if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
 					clientModelNode.moveBackward(deltaPos);
-				}
+				}*/
 			}
 			else 
 			{
