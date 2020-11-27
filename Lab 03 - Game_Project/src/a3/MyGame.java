@@ -1,7 +1,5 @@
-// Author: Hector Rios. ID: 220205545
-
+// CSC-165. Lab 3. Author(s): Hector R., Peter K.
 package a3;
-
 
 import java.awt.*;
 import java.awt.event.*;
@@ -12,6 +10,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Scanner;
 
 import ray.networking.IGameConnection.ProtocolType;
 import java.util.UUID;
@@ -34,6 +33,7 @@ import ray.rage.rendersystem.shader.GpuShaderProgram;
 import ray.rage.rendersystem.Renderable.*;
 import ray.rage.scene.*;
 import ray.rage.scene.Camera.Frustum.*;
+import ray.rage.scene.SkeletalEntity.EndType;
 import net.java.games.input.Controller;
 import ray.rage.scene.controllers.*;
 import ray.rage.util.BufferUtil;
@@ -58,7 +58,6 @@ public class MyGame extends VariableFrameRateGame
 	float elapsedTimeHolder = 0.0f;
 	Camera myCamera;
 	SceneNode myCameraN;
-	
 	
 	//Game variables
 	private int p1Score = 0;     // Score to be displayed
@@ -96,13 +95,14 @@ public class MyGame extends VariableFrameRateGame
 	private SceneNode gndNode, statNetNode; // Physics Variables. 
 	private final static String GROUND_E = "Ground";
 	private final static String GROUND_N = "GroundNode";
+	private static final EndType a3LOOP = EndType.LOOP;
 	private PhysicsEngine physicsEng; 
 	private PhysicsObject ball1PhysObj, ball2PhysObj;
 	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj, npcKnightPhysObj;
 	private double[] netPosTransform; 
 	private boolean running = true;
 	private float ballAngle = 0.0f;
-	
+		
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
         super();
@@ -124,7 +124,8 @@ public class MyGame extends VariableFrameRateGame
     {
     	Game game;
     	if (args.length == 0){   // a3.MyGame 10.0.0.246 6001 UDP. IP address, Port number, UDP/TCP
-    		game = new MyGame("10.0.0.246", 6001, "UDP");  
+    		game = requestGameEnv(); // Created process of getting game mode from user. 
+    		// game = new MyGame("10.0.0.246", 6001, "UDP");  
     	}
     	else{
             game = new MyGame(args[0], Integer.parseInt(args[1]), args[2]);
@@ -142,6 +143,41 @@ public class MyGame extends VariableFrameRateGame
             game.exit();
         }
 	}
+    
+    private static Game requestGameEnv()
+    {
+    	Game tempGame;
+    	String command, givenIP;
+    	int    givenPort;
+    	String initalRequest = "For Single Player, Enter 'S'. For Network Multiplayer, Enter 'M'. ";
+    	String requestIP = "Enter IP address. ";
+    	String requestPort = "Enter Port Number. ";
+    	Scanner myObj = new Scanner(System.in);  // Create a Scanner object
+        
+    	System.out.println(initalRequest);
+        command = myObj.nextLine();  // Read user input
+        
+        // Get decision on whether single player or network. 
+        while (!command.contains("M") && !command.contains("S"))
+        {
+        	System.out.println("Invalid Command Given.\n" + initalRequest);
+        	command = myObj.nextLine(); 
+        }
+        
+        if (command.contains("M")) // Ask for IP address. 
+        {
+        	System.out.println(requestIP);
+        	givenIP = myObj.nextLine();
+        	System.out.println(requestPort);
+        	givenPort = myObj.nextInt();
+        	
+        	tempGame = new MyGame(givenIP, givenPort, "UDP");
+        }
+        else
+        {   tempGame = new MyGame("127.0.0.1", 6001, "UDP");   }
+            	
+    	return tempGame;
+    }
 	
 	private void setupScriptVariables(String filepath)
 	{
@@ -149,8 +185,7 @@ public class MyGame extends VariableFrameRateGame
 
 		String scriptFileName = System.getProperty("user.dir");  // Directory. 
 		scriptFileName += "\\a3\\ScriptGameInit.js";
-		//System.out.println("Directory Info: " + scriptFileName);
-
+		
 		// get the JavaScript engine
 		ScriptEngine jsEngine = factory.getEngineByName("js");
 		// run the script
@@ -160,7 +195,8 @@ public class MyGame extends VariableFrameRateGame
 		counter   	      = (int) jsEngine.get("counter");
 		playerScore       = (int) jsEngine.get("playerScore"); 
 		tempPlayerScore   = (int) jsEngine.get("tempPlayerScore");
-		time1     		  = (int) jsEngine.get("time1"); time2 = (int) jsEngine.get("time2");
+		time1     		  = (int) jsEngine.get("time1"); 
+		time2             = (int) jsEngine.get("time2");
 		timeCount 		  = (boolean) jsEngine.get("timeCount");
 		elapsedTimeHolder = (int) jsEngine.get("elapsedTimeHolder");
 	}
@@ -314,6 +350,11 @@ public class MyGame extends VariableFrameRateGame
         //sm.addController(rotateController); // Adds controller to SM.
         //sm.addController(customController);
         
+        // Create Model Object with Animations/Skeleton/Mesh
+    	System.out.println("Check 01");
+        initalizeModelMKnight();
+        System.out.println("Check 02");
+        // End
     }
 
 	protected void setupInputs()
@@ -523,7 +564,7 @@ public class MyGame extends VariableFrameRateGame
 			} 
 		}
 	} // Update Physics Function End. 
-	
+
 	
 	// Use current node to check all other Nodes that are higher than it on the X axis. 
 	// Stop checking if position of Node/Obj is too far away. 
@@ -673,7 +714,9 @@ public class MyGame extends VariableFrameRateGame
 		
 		generateDeltaTime(elapsTime/1000.0f);    // Updates the player's elapsed time rate for movement.
 		
-		updatePhysicsWorld(elapsTime);
+		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
+
+		updateAnimations(); // Updates Model Animations
 	}
     
     // Updates the player's elapsed time rate for movement.
@@ -775,6 +818,63 @@ public class MyGame extends VariableFrameRateGame
 
 		return (Vector3f) dolphinN.getLocalPosition();
 	}
+
+	// Sets up the Model Mesh, Skeleton, and Animation(s). Setup: MayaKnight01.
+	public void initalizeModelMKnight() throws IOException
+	{
+		// load skeletal entity – in this case it is an avatar
+		// parameters are: entity name, mesh file, skeleton file
+		SceneManager sm = getEngine().getSceneManager(); 
+		SkeletalEntity mSkeletonE = sm.createSkeletalEntity("mayaKnightAv", "TestModel02.rkm", "TestModel_Skeleton02.rks");
+		
+		if (mSkeletonE == null)
+		{
+			System.out.println("SkeletalEntity is NULL.");
+		}
+		else 
+		{
+			System.out.println("SkeletalEntity Info: " + mSkeletonE.toString());
+			System.out.println("SkeletalEntity Name Info: " + mSkeletonE.getName());
+			System.out.println("SkeletalEntity Mesh Info: " + mSkeletonE.getMesh().getName());
+
+		}
+		
+
+		// loading its texture in the standard way
+		Texture tex12 = sm.getTextureManager().getAssetByPath("Cube_UV_Texture02.png");
+		TextureState tstate12 = (TextureState) sm.getRenderSystem().createRenderState(RenderState.Type.TEXTURE);
+		tstate12.setTexture(tex12);
+		mSkeletonE.setRenderState(tstate12);
+		
+		// load the model's animations
+		mSkeletonE.loadAnimation("handsUp-Animation", 
+				"TestModel_HandsUp_Animation02.rka"); // replace names. 
+		mSkeletonE.loadAnimation("walk-Animation", 
+				"TestModel_RHandUp_Animation02.rka");
+
+		// attach the skeletal entity to a scene node
+		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode("Test_Node");
+		//modSkeletonN.attachObject(mSkeletonE);
+		//modSkeletonN.setLocalPosition(0.0f, 0.0f, -2.0f);
+		
+	}
+
+	// Put Animations to be updated constantly in this function
+	private void updateAnimations()
+	{
+		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("mayaKnightAv");
+
+		// update the animation
+		if (manSE != null)
+		{   manSE.update();   }
+	}
+	
+	/*private void doHandsUp()
+	{ 
+		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("mayaKnightAv");
+		manSE.stopAnimation(); // Stop Current Animation (if Any)
+		manSE.playAnimation("handsUp-Animation", 0.5f, EndType.LOOP, 0);
+	}*/
 	
 	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
 	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
@@ -855,84 +955,11 @@ public class MyGame extends VariableFrameRateGame
 		{   gameObjectsToRemove.add(avatar.obtainGhostID());   }
 	}
 	
-	// NONE USE FUNCTIONS
-    // Creates groups of hierarchical objects. 
-	private void createGameObstacles(Engine eng, SceneManager sm, SceneNode givenNodeGroup) throws IOException 
+	// Adds given NPC Ghost to the world. 
+	public void addGhostNPCtoGameWorld(GhostNPC newNPC) 
 	{
-		// Create Top Node to manage all prism generation
-		SceneNode prismRootNode = givenNodeGroup; // Parent Node - To better manage Node Controllers
-		SceneNode prismNodeGroup1 = prismRootNode.createChildSceneNode("PrismGroup1Node");
-		createPrismGroup(prismNodeGroup1, eng, sm, -2.5f, 0.6f, -1.0f, "Grp1");
-	}
-	
-	// Build the complex structure based on the basic Prism model. Goal: Model "Wind Turbine".
-	public void createPrismGroup(SceneNode givenPrismGroupNode, Engine eng, SceneManager sm, float x, float y, float z, String ID) throws IOException
-	{
-		Vector3f axisX = (Vector3f) Vector3f.createFrom(1.0f, 0.0f, 0.0f);
-		Vector3f axisZ = (Vector3f) Vector3f.createFrom(0.0f, 0.0f, 1.0f);
-
-		Angle angle1 = Degreef.createFrom(-90.0f);
-		Angle angle2 = Degreef.createFrom(-45.0f);
-		Angle angle3 = Degreef.createFrom(45.0f);
-		Angle angle4 = Degreef.createFrom(180.0f);
+		System.out.println("Client -> addGhostNPCtoGameWorld. ID: " + newNPC.obtainID());
 		
-		//Second Object Creation/
-		ManualObject corePrism = new SpaceObject().obtainPrismObject(eng, sm, ("LCorePrism_" + ID + "_")); 
-		corePrism.setPrimitive(Primitive.TRIANGLES);
-        
-        SceneNode corePrismN = givenPrismGroupNode.createChildSceneNode(corePrism.getName() + "Node");
-        corePrismN.scale(0.2f, 0.3f, 0.2f);
-        corePrismN.rotate(angle1, axisX);
-        corePrismN.attachObject(corePrism); // Attach node to model entity
-        
-        // Create First Wing
-		ManualObject subPrism1 = new SpaceObject().obtainPrismObject(eng, sm, ("mySubPrism_1" + ID + "_")); 
-		subPrism1.setPrimitive(Primitive.TRIANGLES);
-		
-		SceneNode subPrism1N = givenPrismGroupNode.createChildSceneNode(subPrism1.getName() + "Node");
-		subPrism1N.scale(0.15f, 0.5f, 0.15f);
-		subPrism1N.rotate(angle2, axisZ);
-		subPrism1N.moveUp(0.5f);
-		subPrism1N.attachObject(subPrism1);
-        
-		// Create Second Wing
-		ManualObject subPrism2 = new SpaceObject().obtainPrismObject(eng, sm, ("mySubPrism_2" + ID + "_")); 
-		subPrism2.setPrimitive(Primitive.TRIANGLES);
-		
-		SceneNode subPrism2N = givenPrismGroupNode.createChildSceneNode(subPrism2.getName() + "Node");
-		subPrism2N.scale(0.15f, 0.5f, 0.15f);
-		subPrism2N.rotate(angle3, axisZ);
-		subPrism2N.moveUp(0.5f);
-		subPrism2N.attachObject(subPrism2);
-
-		// Create Third Wing. 
-		ManualObject subPrism3 = new SpaceObject().obtainPrismObject(eng, sm, ("mySubPrism_3" + ID + "_")); 
-		subPrism3.setPrimitive(Primitive.TRIANGLES);
-		
-		SceneNode subPrism3N = givenPrismGroupNode.createChildSceneNode(subPrism3.getName() + "Node");
-		subPrism3N.scale(0.15f, 0.5f, 0.15f);
-		subPrism3N.rotate(angle4, axisZ);
-		subPrism3N.moveUp(0.5f);
-		subPrism3N.attachObject(subPrism3);
-		
-		givenPrismGroupNode.setLocalPosition(x, y, z); // setLocalPosition(-1.5f, 0.6f, -1.5f);
-		//customController.addNode(givenPrismGroupNode); // Sets the object to spin around Z-axis of middle obj.
-	}
-    
-    private boolean determinePrismCollision(SceneNode objectN, SceneNode dolphinN) 
-    {
-		// Goal: Provides accurate collision detection of prism structure and players. 
-    	Vector3f prismLoc = (Vector3f) objectN.getLocalPosition();    // Get prism position.
-    	Vector3f dolphinLoc = (Vector3f) dolphinN.getLocalPosition(); // Get player position.
-    
-    	float boundryLimit = 1.0f;
-    	
-    	if (returnDistance(prismLoc, dolphinLoc) < boundryLimit)
-    	{
-    		return true;
-    	}
-    	
-		return false;
 	}
 	
 }

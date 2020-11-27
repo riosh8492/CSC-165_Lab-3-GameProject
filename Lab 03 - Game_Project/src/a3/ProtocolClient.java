@@ -28,6 +28,8 @@ public class ProtocolClient extends GameConnectionClient
 	private int gAvatarID;
 	private Vector3f gAvatarPosition; 
 	
+	private ArrayList<GhostNPC> ghostNPCs = new ArrayList<GhostNPC>(10); // NPC/AI Variables. 
+	
 	public ProtocolClient(InetAddress remAddr, int remPort, ProtocolType pType, MyGame givenGame) throws IOException
 	{
 		super(remAddr, remPort, pType);
@@ -134,6 +136,18 @@ public class ProtocolClient extends GameConnectionClient
 							Float.parseFloat(msgTokens[5]));
 					moveUpdateGhostAvatar(msgTokens[1], ghostID.toString(), pos);
 				}
+			}
+			// GHOST NPC MSGS
+			// handle updates to NPC positions
+			// format: (mnpc,npcID,x,y,z)
+			if(msgTokens[0].compareTo("mnpc") == 0)
+			{ 
+				int ghostID = Integer.parseInt(msgTokens[1]);
+				Vector3 ghostPosition = Vector3f.createFrom(
+						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[2]));
+				updateGhostNPC(ghostID, ghostPosition);
 			}
 		}
 	}
@@ -325,4 +339,34 @@ public class ProtocolClient extends GameConnectionClient
 			}
 		} // End loop. 
 	}
+	
+	// Create GHOST NPC in Client. 
+	private void createGhostNPC(int id, Vector3 position)
+	{ 
+		GhostNPC newNPC = new GhostNPC(id, position);
+		ghostNPCs.add(newNPC);
+		game.addGhostNPCtoGameWorld(newNPC);
+	}
+	
+	// GHOST NPC Update. 
+	private void updateGhostNPC(int id, Vector3 position)
+	{ 
+		ghostNPCs.get(id).setPosition(position);
+	}
+	
+	// Outward Request by Client to the SERVER. 
+	public void askForNPCinfo()
+	{ 
+		try
+		{ 
+			sendPacket(new String("needNPC," + id.toString()));
+		}
+		catch (IOException e)
+		{ 
+			e.printStackTrace();
+		} 
+	}
+	
+	public UUID obtainClientID()
+	{   return id;   }
 }

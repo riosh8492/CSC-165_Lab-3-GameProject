@@ -25,13 +25,16 @@ public class QuitGameAction extends AbstractInputAction
 	@Override
 	public void performAction(float arg0, Event arg1) 
 	{
-		System.out.println("shutdown requested");
-		localGame.setState(Game.State.STOPPING);
+		System.out.println("Quit/Shutdown by " + protClient.obtainClientID().toString());
 		
 		if (protClient != null)
 		{
 			protClient.sendByeMessage();
 		}
+		
+		localGame.setState(Game.State.STOPPING);
+		
+		
 	}
 
 }

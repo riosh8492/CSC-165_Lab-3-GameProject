@@ -13,12 +13,33 @@ import ray.networking.IGameConnection.ProtocolType;
 
 public class NetworkingServer 
 {
-	private GameServerUDP thisUDPServer;
 	//private GameServerTCP thisTCPServer;
+	private GameServerUDP thisUDPServer;
+	private NPC_Controller npcCtrl;
+	private long startTime, lastUpdateTime; 
+	
+	/*
+	GameAIServerTCP tcpServer;
+	public NetworkingServer(int id) // constructor
+	{ startTime = System.nanoTime();
+	lastUpdateTime = startTime;
+	npcCtrl = new NPCcontroller();
+	. . .
+	// start networking TCP server (as before)
+	. . .
+	// start NPC control loop
+	npcCtrl.setupNPCs();
+	npcLoop();
+ * */
 	
 	public NetworkingServer(int serverPort, String protocol)
 	{ 
-		System.out.println("Server Idle ...");
+		System.out.println("Server Initializated ...");
+		
+		startTime = System.nanoTime();
+		lastUpdateTime = startTime;
+		npcCtrl = new NPC_Controller();
+		
 		try
 		{ 
 			System.out.println("Server Idle: Try Statement ...");
@@ -34,8 +55,35 @@ public class NetworkingServer
 		}
 		catch (IOException e)
 		{   e.printStackTrace();   } 
-	} // Contructor End.
 		
+		// start NPC control loop
+		npcCtrl.setupNPCs();
+		thisUDPServer.initializeNPCRecord(npcCtrl);
+		npcLoop(); 
+	}
+		
+	// Loop that constantly updates all the created NPCs. 
+	public void npcLoop() // NPC control loop
+	{ 
+		long frameStartTime;
+		float elapMilSecs;
+		
+		while (true)
+		{ 
+			frameStartTime = System.nanoTime();
+			elapMilSecs = (frameStartTime-lastUpdateTime)/(1000000.0f);
+			
+			if (elapMilSecs >= 50.0f)
+			{ 
+				lastUpdateTime = frameStartTime;
+				npcCtrl.updateNPCs();
+				thisUDPServer.sendNPCinfo();
+			}
+			Thread.yield(); // ???
+		} 
+	}
+	// main
+
 	public static void main(String[] args)
 	{ 
 		System.out.println("NetworkingServer main print.");

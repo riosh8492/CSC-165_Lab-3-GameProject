@@ -1,1 +1,0 @@
-javac myGameServer\*.java

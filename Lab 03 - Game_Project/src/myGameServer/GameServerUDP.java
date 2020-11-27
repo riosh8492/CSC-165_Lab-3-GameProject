@@ -20,6 +20,7 @@ import ray.rml.Vector3f;
 public class GameServerUDP extends GameConnectionServer<UUID>
 {
 	private String[][] clientAddressList; 
+	private NPC_Controller npcCtrl;
 	
 	public GameServerUDP(int localPort) throws IOException
 	{ 
@@ -115,8 +116,36 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				}
 				
 			}
+			// Additional cases for receiving messages about NPCs, such as:
+			if(msgTokens[0].compareTo("needNPC") == 0)
+			{
+				
+			}
+			if(msgTokens[0].compareTo("collide") == 0)
+			{
+				
+			}
 		}
 	} // Function end. 
+	
+	
+	/*
+	 * public void sendNPCinfo() // informs clients of new NPC positions
+	{ for (int i=0; i<npcCtrl.getNumOfNPCs(); i++)
+	{ try
+	{ String message = new String("mnpc," + Integer.toString(i));
+	message += "," + (npcCtrl.getNPC(i)).getX();
+	message += "," + (npcCtrl.getNPC(i)).getY();
+	message += "," + (npcCtrl.getNPC(i)).getZ();
+	sendPacketToAll(message);
+	. . .
+	// also additional cases for receiving messages about NPCs, such as:
+	if(messageTokens[0].compareTo("needNPC") == 0)
+	{ . . . }
+	if(messageTokens[0].compareTo("collide") == 0)
+	{ . . . }
+	}
+	 * */
 	
 	private boolean validateClient(InetAddress senderIP) 
 	{
@@ -244,6 +273,28 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		{   e.printStackTrace();   } 
 	}
 	
+	// NPC Server Methods
+	public void sendNPCinfo() // informs clients of new NPC positions
+	{ 
+		String msg; 
+	
+		for (int i=0; i < npcCtrl.obtainNpcAmount(); i++)
+		{ 
+			try
+			{ 
+				msg = new String("mnpc," + Integer.toString(i));
+				msg += "," + (npcCtrl.getNPC(i)).getX();
+				msg += "," + (npcCtrl.getNPC(i)).getY();
+				msg += "," + (npcCtrl.getNPC(i)).getZ();
+				sendPacketToAll(msg);
+			}
+			catch (IOException e)
+			{
+				System.out.println("ERROR in func: sendNPCinfo().");
+			}
+		}
+	}
+	
 	// Relay given Client BYE message to other clients for ghost termination. 
 	public void sendByeMessages(UUID clientID)
 	{ 
@@ -255,4 +306,8 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		catch (IOException e) 
 		{   e.printStackTrace();   }
 	}
+
+	// Function to give Game Server a reference to NPC Controller. 
+	public void initializeNPCRecord(NPC_Controller givenController) 
+	{   npcCtrl = givenController;   }
 }
