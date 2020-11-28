@@ -57,6 +57,7 @@ public class ProtocolClient extends GameConnectionClient
 				{ 
 					game.setIsConnected(true);
 					sendCreateMessage(game.getPlayerPosition());
+					sendCreateMessage_NPC(game.getGhostPosition_NPC()); 
 				}
 				if(msgTokens[1].compareTo("failure") == 0)
 				{   game.setIsConnected(false);   }
@@ -139,15 +140,25 @@ public class ProtocolClient extends GameConnectionClient
 			}
 			// GHOST NPC MSGS
 			// handle updates to NPC positions
-			// format: (mnpc,npcID,x,y,z)
-			if(msgTokens[0].compareTo("mnpc") == 0)
+			// format: (msg-command,npcID,x,y,z)
+			if(msgTokens[0].compareTo("c_npc") == 0)
 			{ 
-				int ghostID = Integer.parseInt(msgTokens[1]);
+				int npcGhostID = Integer.parseInt(msgTokens[1]);
 				Vector3 ghostPosition = Vector3f.createFrom(
 						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[3]),
+						Float.parseFloat(msgTokens[4]));
+				createGhostNPC(npcGhostID, ghostPosition);
+			}
+			// Meant for Updating GhostNPC movement. 
+			if(msgTokens[0].compareTo("m_npc") == 0)
+			{ 
+				int npcGhostID = Integer.parseInt(msgTokens[1]);
+				Vector3 ghostPosition = Vector3f.createFrom(
 						Float.parseFloat(msgTokens[2]),
-						Float.parseFloat(msgTokens[2]));
-				updateGhostNPC(ghostID, ghostPosition);
+						Float.parseFloat(msgTokens[3]),
+						Float.parseFloat(msgTokens[4]));
+				//updateGhostNPC(ghostID, ghostPosition);
 			}
 		}
 	}
@@ -171,6 +182,20 @@ public class ProtocolClient extends GameConnectionClient
 		}
 		catch (IOException e) 
 		{   e.printStackTrace();   } 
+	}
+	
+	// Client sends NPC creation request
+	private void sendCreateMessage_NPC(Vector3f pos) 
+	{
+		try
+		{ 
+			String message = new String("needNPC," + id.toString());
+			message += "," + pos.x()+"," + pos.y() + "," + pos.z();
+			sendPacket(message);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   } 
+		
 	}
 	
 	public void sendByeMessage()

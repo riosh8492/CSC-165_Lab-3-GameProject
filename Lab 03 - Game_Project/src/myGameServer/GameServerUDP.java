@@ -37,7 +37,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		
 		if(msgTokens.length > 0)
 		{
-			System.out.println("Game Server UDP - MSG: " + message);
+			System.out.println("\nGame Server UDP - MSG: " + message);
 			
 			// case where server receives a JOIN messagec
 			if(msgTokens[0].compareTo("join") == 0)
@@ -119,7 +119,20 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			// Additional cases for receiving messages about NPCs, such as:
 			if(msgTokens[0].compareTo("needNPC") == 0)
 			{
-				
+				System.out.println("NeedNPC block Start.");
+				String clientID = msgTokens[1];
+				Vector3f givenPos = (Vector3f) Vector3f.createFrom(
+									 Float.parseFloat(msgTokens[2]),
+									 Float.parseFloat(msgTokens[3]),
+									 Float.parseFloat(msgTokens[4]));
+				System.out.println("NeedNPC 1.");
+				NPC newNPC = new NPC(givenPos);
+				System.out.println("NeedNPC 1.5");
+				npcCtrl.addNPC(newNPC);
+				// Call function to send NPC Creation msgs to clients. 
+				System.out.println("NeedNPC 2.");
+				sendMessageToAll_CreateNPC(newNPC);
+				System.out.println("NeedNPC block end.");
 			}
 			if(msgTokens[0].compareTo("collide") == 0)
 			{
@@ -147,6 +160,25 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	}
 	 * */
 	
+
+	// Sends Message to all Clients to create NPC at given location & client. 
+	private void sendMessageToAll_CreateNPC(NPC newNPC) 
+	{
+		Vector3f givenPos = newNPC.getVectorPos();
+		System.out.println("GameServer - sendMessageToAll_CreateNPC.");
+
+		try
+		{
+			String msg = new String("c_npc," + newNPC.getID());
+			msg += "," + givenPos.x();
+			msg += "," + givenPos.y();
+			msg += "," + givenPos.z();
+			sendPacketToAll(msg);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   }
+	}
+
 	private boolean validateClient(InetAddress senderIP) 
 	{
 		// This goes through the client record and checks to see if IP address is not already there. 
@@ -308,6 +340,6 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	}
 
 	// Function to give Game Server a reference to NPC Controller. 
-	public void initializeNPCRecord(NPC_Controller givenController) 
+	public void obtainNPCReference(NPC_Controller givenController) 
 	{   npcCtrl = givenController;   }
 }

@@ -8,7 +8,10 @@ public class NPC_Controller
 	
 	public NPC_Controller()
 	{
-		
+		int i; 
+		// Empty out storage. 
+		for (i = 0; i < NPClist.length; i++)
+		{   NPClist[i] = null;   }
 	}
 	
 	// Adds given NPC to the end of the List. 
@@ -19,12 +22,14 @@ public class NPC_Controller
 		{
 			if (NPClist[i] == null)
 			{
+				givenNPC.setID(i); // Record index location. 
 				NPClist[i] = givenNPC;
 				break; 
 			}
 		}
 	}
 	
+	// This basically updates their positions. I guess. 
 	public void updateNPCs()
 	{ 
 		for (int i=0; i<numNPCs; i++)
@@ -36,7 +41,6 @@ public class NPC_Controller
 	public void setupNPCs() 
 	{
 		System.out.println("NPC controller -> Set Up NPCs");
-		
 	}
 
 	// Returns NPC at index given.

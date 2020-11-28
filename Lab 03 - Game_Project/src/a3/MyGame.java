@@ -20,6 +20,7 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
 import myGameEngine.*;
+import myGameServer.NetworkingServer;
 import ray.input.GenericInputManager;
 import ray.input.InputManager;
 import ray.input.action.Action;
@@ -91,6 +92,7 @@ public class MyGame extends VariableFrameRateGame
 	private ProtocolClient protClient;
 	private boolean isClientConnected;
 	private ArrayList<UUID> gameObjectsToRemove;
+	private static NetworkingServer app; 
 	
 	private SceneNode gndNode, statNetNode; // Physics Variables. 
 	private final static String GROUND_E = "Ground";
@@ -147,11 +149,13 @@ public class MyGame extends VariableFrameRateGame
     private static Game requestGameEnv()
     {
     	Game tempGame;
-    	String command, givenIP;
-    	int    givenPort;
+    	boolean userConfirm = false; 
+    	String command, givenIP = "10.0.0.246";
+    	int    givenPort = 6020;
     	String initalRequest = "For Single Player, Enter 'S'. For Network Multiplayer, Enter 'M'. ";
     	String requestIP = "Enter IP address. ";
     	String requestPort = "Enter Port Number. ";
+    	String confirmInput = "", confirmRequest = "Enter (Y/N) to Confirm... ";
     	Scanner myObj = new Scanner(System.in);  // Create a Scanner object
         
     	System.out.println(initalRequest);
@@ -164,18 +168,23 @@ public class MyGame extends VariableFrameRateGame
         	command = myObj.nextLine(); 
         }
         
-        if (command.contains("M")) // Ask for IP address. 
+        System.out.println(requestIP);
+    	givenIP = myObj.nextLine();
+    	System.out.println(requestPort);
+    	givenPort = myObj.nextInt();	
+    	System.out.println(confirmRequest);
+    	confirmInput = myObj.nextLine();
+    	System.out.println();
+    	        
+        if (command.contains("S") || command.contains("s"))
         {
-        	System.out.println(requestIP);
-        	givenIP = myObj.nextLine();
-        	System.out.println(requestPort);
-        	givenPort = myObj.nextInt();
-        	
-        	tempGame = new MyGame(givenIP, givenPort, "UDP");
+        	// Possible problem in static port number. 
+        	app = new NetworkingServer(6001, "UDP"); // Create Game Server. 
         }
-        else
-        {   tempGame = new MyGame("127.0.0.1", 6001, "UDP");   }
+
             	
+    	tempGame = new MyGame(givenIP, givenPort, "UDP"); // 127.0.0.1   
+
     	return tempGame;
     }
 	
@@ -351,9 +360,9 @@ public class MyGame extends VariableFrameRateGame
         //sm.addController(customController);
         
         // Create Model Object with Animations/Skeleton/Mesh
-    	System.out.println("Check 01");
-        initalizeModelMKnight();
-        System.out.println("Check 02");
+    	//System.out.println("Check 01");
+        //initalizeModelMKnight();
+        //System.out.println("Check 02");
         // End
     }
 
@@ -716,7 +725,7 @@ public class MyGame extends VariableFrameRateGame
 		
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
-		updateAnimations(); // Updates Model Animations
+		//updateAnimations(); // Updates Model Animations
 	}
     
     // Updates the player's elapsed time rate for movement.
@@ -735,6 +744,7 @@ public class MyGame extends VariableFrameRateGame
 		}
 	}
 
+	// Sets up ProtcolClient for client so that client can talk to server. 
 	private void setupNetworking(float elpsTime)
 	{ 
 		gameObjectsToRemove = new ArrayList<UUID>();
@@ -802,10 +812,10 @@ public class MyGame extends VariableFrameRateGame
 	}
 
 	// Network Used Function - Connection Status Setter*
-	public void setIsConnected(boolean b) 
+	public void setIsConnected(boolean connectStatus) 
 	{
 		// Info returned from the UDP Client manager.
-		isClientConnected = b;
+		isClientConnected = connectStatus;
 	}
 
 	// * Assuming we are making a one view person game with networking, 
@@ -814,9 +824,8 @@ public class MyGame extends VariableFrameRateGame
 	public Vector3f getPlayerPosition() 
 	{
 		// return DolphinPos.
-    	SceneNode dolphinN = getEngine().getSceneManager().getSceneNode("myDolphinNode");
-
-		return (Vector3f) dolphinN.getLocalPosition();
+    	SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode");
+		return (Vector3f) clientN.getLocalPosition();
 	}
 
 	// Sets up the Model Mesh, Skeleton, and Animation(s). Setup: MayaKnight01.
@@ -956,10 +965,43 @@ public class MyGame extends VariableFrameRateGame
 	}
 	
 	// Adds given NPC Ghost to the world. 
+	// Create Ghost NPC in game world. NPC controlled by Game Server. 
 	public void addGhostNPCtoGameWorld(GhostNPC newNPC) 
 	{
 		System.out.println("Client -> addGhostNPCtoGameWorld. ID: " + newNPC.obtainID());
+		Vector3f pos = (Vector3f) newNPC.getPosition();
+		SceneManager sm = getEngine().getSceneManager();
 		
+		try 
+		{
+			Entity npcE = sm.createEntity("NPC_" + newNPC.obtainID(), "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+	        npcE.setPrimitive(Primitive.TRIANGLES);
+	        
+	        SceneNode npcNode = sm.getRootSceneNode().createChildSceneNode(npcE.getName() + "_Node");
+	        npcNode.setLocalPosition(3.0f, 0.5f, -1.0f);
+	        npcNode.scale(0.10f, 0.10f, 0.10f);
+	        npcNode.attachObject(npcE);
+		}
+		catch (IOException e) 
+		{   
+			System.out.println("Error Creating Ghost NPC in Client world.");
+			e.printStackTrace();   
+		}
+	
+	}
+
+	// Returns an initial location for the requested NPC. 
+	// Goal is to Create an NPC for each client opposite to them.
+	public Vector3f getGhostPosition_NPC() 
+	{
+		Vector3f clientPos = getPlayerPosition(); // Get Client Pos. 
+		Vector3f npcPos;
+		if (clientPos.z() > 0)
+		{   npcPos = (Vector3f) Vector3f.createFrom(clientPos.x(), clientPos.y(), -clientPos.z());    }
+		else 
+		{   npcPos = (Vector3f) Vector3f.createFrom(clientPos.x(), clientPos.y(), clientPos.z());    }
+		
+		return npcPos;
 	}
 	
 }

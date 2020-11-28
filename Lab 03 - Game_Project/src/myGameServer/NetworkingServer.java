@@ -42,7 +42,6 @@ public class NetworkingServer
 		
 		try
 		{ 
-			System.out.println("Server Idle: Try Statement ...");
 			if(protocol.toUpperCase().compareTo("TCP") == 0)
 			{ 
 				// If we prefer to use TCP.
@@ -54,12 +53,15 @@ public class NetworkingServer
 			} 
 		}
 		catch (IOException e)
-		{   e.printStackTrace();   } 
+		{   
+			System.out.println("Error in creating Game Server. ");
+			e.printStackTrace();   
+		} 
 		
 		// start NPC control loop
 		npcCtrl.setupNPCs();
-		thisUDPServer.initializeNPCRecord(npcCtrl);
-		npcLoop(); 
+		thisUDPServer.obtainNPCReference(npcCtrl);
+		// npcLoop(); DISABLE LOOP for now. 
 	}
 		
 	// Loop that constantly updates all the created NPCs. 
