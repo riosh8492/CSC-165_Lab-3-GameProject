@@ -93,6 +93,7 @@ public class MyGame extends VariableFrameRateGame
 	private boolean isClientConnected;
 	private ArrayList<UUID> gameObjectsToRemove;
 	private static NetworkingServer app; 
+	private Vector3f ballPosition; 
 	
 	private SceneNode gndNode, statNetNode; // Physics Variables. 
 	private final static String GROUND_E = "Ground";
@@ -173,15 +174,12 @@ public class MyGame extends VariableFrameRateGame
     	System.out.println(requestPort);
     	givenPort = myObj.nextInt();	
     	System.out.println(confirmRequest);
-    	confirmInput = myObj.nextLine();
-    	System.out.println();
     	        
         if (command.contains("S") || command.contains("s"))
         {
         	// Possible problem in static port number. 
-        	app = new NetworkingServer(6001, "UDP"); // Create Game Server. 
+        	app = new NetworkingServer(givenPort, "UDP"); // Create Game Server. 
         }
-
             	
     	tempGame = new MyGame(givenIP, givenPort, "UDP"); // 127.0.0.1   
 
@@ -286,6 +284,7 @@ public class MyGame extends VariableFrameRateGame
     	SceneNode sphereN = sm.getRootSceneNode().createChildSceneNode(sphereE.getName() + "Node");
     	sphereN.attachObject(sphereE);
     	sphereN.setLocalPosition(0.0f, 0.5f, 1.1f);
+    	ballPosition = (Vector3f) sphereN.getLocalPosition(); 
     	//sphereN.scale(0.1f, 0.1f, 0.1f);
   
         
@@ -726,9 +725,11 @@ public class MyGame extends VariableFrameRateGame
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
 		//updateAnimations(); // Updates Model Animations
+		
+		updateServerBallPosition(); // Sends the Server an update on ball position. 
 	}
-    
-    // Updates the player's elapsed time rate for movement.
+
+	// Updates the player's elapsed time rate for movement.
 	private void generateDeltaTime(float currentTime) 
 	{
 		if (timeCount == false) // Record the initial time
@@ -978,7 +979,7 @@ public class MyGame extends VariableFrameRateGame
 	        npcE.setPrimitive(Primitive.TRIANGLES);
 	        
 	        SceneNode npcNode = sm.getRootSceneNode().createChildSceneNode(npcE.getName() + "_Node");
-	        npcNode.setLocalPosition(3.0f, 0.5f, -1.0f);
+	        npcNode.setLocalPosition(pos.x(), pos.y(), pos.z());
 	        npcNode.scale(0.10f, 0.10f, 0.10f);
 	        npcNode.attachObject(npcE);
 		}
@@ -1002,6 +1003,39 @@ public class MyGame extends VariableFrameRateGame
 		{   npcPos = (Vector3f) Vector3f.createFrom(clientPos.x(), clientPos.y(), clientPos.z());    }
 		
 		return npcPos;
+	}
+
+	public Vector3f obtainBallLocation() 
+	{   // Returns Ball Node Location. 
+    	SceneNode ballNode = getEngine().getSceneManager().getSceneNode("gameBallNode");
+		return (Vector3f) ballNode.getLocalPosition();
+	}
+	
+	public void updateServerBallPosition() 
+	{
+		// Constantly called to keep ball position updated. ballPosition
+    	SceneNode ballNode = getEngine().getSceneManager().getSceneNode("gameBallNode");
+
+		Vector3f curPos = (Vector3f) ballNode.getLocalPosition(); 
+		
+		if (determineChangeVectors(curPos, ballPosition))
+		{ // If there is a change then update local ref and server. 
+			ballPosition = curPos; 
+			protClient.sendBallPositionToServer();
+		}
+	}
+	
+	// Determines if there was a change in ball position. 
+	public boolean determineChangeVectors(Vector3f curPos, Vector3f oldPos) 
+	{
+		boolean axisX = (curPos.x() == oldPos.x()) ? false : true;
+		boolean axisY = (curPos.y() == oldPos.y()) ? false : true;
+		boolean axisZ = (curPos.z() == oldPos.z()) ? false : true;
+		
+		if (axisX || axisY || axisZ)
+		{    return true;    } 
+		else 
+		{    return false;   }
 	}
 	
 }

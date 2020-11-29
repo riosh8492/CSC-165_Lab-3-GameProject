@@ -115,6 +115,11 @@ public class ProtocolClient extends GameConnectionClient
 				updateGhostAvatar(ghostID, pos);
 				System.out.println("Client - details for requested -> call sendDetailsForMessage");
 			}
+			// Request for Ball location. 
+			if(msgTokens[0].compareTo("requestBallPosition") == 0)
+			{
+				sendBallPositionToServer(); 
+			}
 
 			// Got a move message. This means that one of the ghost avatars needs to be updated. 
 			if(msgTokens[0].compareTo("move") == 0) // rec. �move...�
@@ -390,6 +395,21 @@ public class ProtocolClient extends GameConnectionClient
 		{ 
 			e.printStackTrace();
 		} 
+	}
+	
+	// Send ball location to the server. 
+	public void sendBallPositionToServer() 
+	{
+		String msg;
+		Vector3f ballPos = game.obtainBallLocation(); 
+		try
+		{ 
+			msg = new String("detailsForBall,");
+			msg += "," + ballPos.x()+"," + ballPos.y() + "," + ballPos.z();
+			sendPacket(msg);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   } 
 	}
 	
 	public UUID obtainClientID()

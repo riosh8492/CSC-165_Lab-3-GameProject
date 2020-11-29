@@ -13,24 +13,9 @@ import ray.networking.IGameConnection.ProtocolType;
 
 public class NetworkingServer 
 {
-	//private GameServerTCP thisTCPServer;
 	private GameServerUDP thisUDPServer;
 	private NPC_Controller npcCtrl;
 	private long startTime, lastUpdateTime; 
-	
-	/*
-	GameAIServerTCP tcpServer;
-	public NetworkingServer(int id) // constructor
-	{ startTime = System.nanoTime();
-	lastUpdateTime = startTime;
-	npcCtrl = new NPCcontroller();
-	. . .
-	// start networking TCP server (as before)
-	. . .
-	// start NPC control loop
-	npcCtrl.setupNPCs();
-	npcLoop();
- * */
 	
 	public NetworkingServer(int serverPort, String protocol)
 	{ 
@@ -38,7 +23,6 @@ public class NetworkingServer
 		
 		startTime = System.nanoTime();
 		lastUpdateTime = startTime;
-		npcCtrl = new NPC_Controller();
 		
 		try
 		{ 
@@ -60,31 +44,10 @@ public class NetworkingServer
 		
 		// start NPC control loop
 		npcCtrl.setupNPCs();
+		npcCtrl = new NPC_Controller(thisUDPServer);
 		thisUDPServer.obtainNPCReference(npcCtrl);
 		// npcLoop(); DISABLE LOOP for now. 
 	}
-		
-	// Loop that constantly updates all the created NPCs. 
-	public void npcLoop() // NPC control loop
-	{ 
-		long frameStartTime;
-		float elapMilSecs;
-		
-		while (true)
-		{ 
-			frameStartTime = System.nanoTime();
-			elapMilSecs = (frameStartTime-lastUpdateTime)/(1000000.0f);
-			
-			if (elapMilSecs >= 50.0f)
-			{ 
-				lastUpdateTime = frameStartTime;
-				npcCtrl.updateNPCs();
-				thisUDPServer.sendNPCinfo();
-			}
-			Thread.yield(); // ???
-		} 
-	}
-	// main
 
 	public static void main(String[] args)
 	{ 

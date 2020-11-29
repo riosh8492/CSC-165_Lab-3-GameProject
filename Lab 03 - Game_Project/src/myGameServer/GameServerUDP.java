@@ -21,11 +21,14 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 {
 	private String[][] clientAddressList; 
 	private NPC_Controller npcCtrl;
+	private Vector3f gameBallPosition = null; 
 	
 	public GameServerUDP(int localPort) throws IOException
 	{ 
 		super(localPort, ProtocolType.UDP); 
 		clientAddressList = new String[10][2]; // Ten possible Clients. 
+		gameBallPosition = null;// (Vector3f) Vector3f.createFrom(0.0f, 0.0f, 0.0f); // Set dummy ball loc. Will be updated later. 
+		
 		System.out.println("Game Server Address: " + this.getLocalInetAddress().toString());
 	}
 	
@@ -52,6 +55,11 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					{
 						addClient(ci, clientID);           // Add Client
 						sendJoinedMessage(clientID, true); // Send Response that connection true.
+						if (gameBallPosition == null)
+						{
+							sendBallPositionRequest(clientID);      // If no record of ball location, send request for it. 
+						}
+													
 						recordJoinedClient(clientID.toString(), senderIP.toString());  // Record newly joined Client.
 					}
 					else
@@ -116,50 +124,52 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				}
 				
 			}
+			// Ball Position handling.
+			if (msgTokens[0].compareTo("detailsForBall") == 0)
+			{
+				Vector3f ballPos = (Vector3f) Vector3f.createFrom(
+						 Float.parseFloat(msgTokens[1]),
+						 Float.parseFloat(msgTokens[2]),
+						 Float.parseFloat(msgTokens[3]));
+				gameBallPosition = ballPos; // Record Ball Position instance. 
+			}
 			// Additional cases for receiving messages about NPCs, such as:
 			if(msgTokens[0].compareTo("needNPC") == 0)
 			{
-				System.out.println("NeedNPC block Start.");
 				String clientID = msgTokens[1];
 				Vector3f givenPos = (Vector3f) Vector3f.createFrom(
 									 Float.parseFloat(msgTokens[2]),
 									 Float.parseFloat(msgTokens[3]),
 									 Float.parseFloat(msgTokens[4]));
-				System.out.println("NeedNPC 1.");
+
 				NPC newNPC = new NPC(givenPos);
-				System.out.println("NeedNPC 1.5");
 				npcCtrl.addNPC(newNPC);
+				
 				// Call function to send NPC Creation msgs to clients. 
-				System.out.println("NeedNPC 2.");
 				sendMessageToAll_CreateNPC(newNPC);
-				System.out.println("NeedNPC block end.");
+				//System.out.println("NeedNPC block end.");
 			}
 			if(msgTokens[0].compareTo("collide") == 0)
 			{
-				
+				// If needed. NPC collides with ball? 
 			}
 		}
 	} // Function end. 
 	
-	
-	/*
-	 * public void sendNPCinfo() // informs clients of new NPC positions
-	{ for (int i=0; i<npcCtrl.getNumOfNPCs(); i++)
-	{ try
-	{ String message = new String("mnpc," + Integer.toString(i));
-	message += "," + (npcCtrl.getNPC(i)).getX();
-	message += "," + (npcCtrl.getNPC(i)).getY();
-	message += "," + (npcCtrl.getNPC(i)).getZ();
-	sendPacketToAll(message);
-	. . .
-	// also additional cases for receiving messages about NPCs, such as:
-	if(messageTokens[0].compareTo("needNPC") == 0)
-	{ . . . }
-	if(messageTokens[0].compareTo("collide") == 0)
-	{ . . . }
+	// Meant to be called when first client is created. 
+	private void sendBallPositionRequest(UUID clientID) 
+	{
+		String message;
+		try
+		{   if (gameBallPosition == null) // If no ball position on record, use first one. 
+			{
+				message = "requestBallPosition";//"detailsForBall"; 
+				sendPacket(message, clientID);
+			}
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   }
 	}
-	 * */
-	
 
 	// Sends Message to all Clients to create NPC at given location & client. 
 	private void sendMessageToAll_CreateNPC(NPC newNPC) 
@@ -342,4 +352,12 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	// Function to give Game Server a reference to NPC Controller. 
 	public void obtainNPCReference(NPC_Controller givenController) 
 	{   npcCtrl = givenController;   }
+	
+	public Vector3f obtainServerBallPosition()
+	{   
+		if (gameBallPosition == null)
+		{   return (Vector3f) Vector3f.createFrom(0.0f, 0.0f, 0.0f);   }
+		else
+		{   return gameBallPosition;   }
+	}
 }
