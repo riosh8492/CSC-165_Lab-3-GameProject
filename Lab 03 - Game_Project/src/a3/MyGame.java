@@ -46,6 +46,8 @@ import ray.rage.rendersystem.states.*;
 import ray.physics.PhysicsEngine;
 import ray.physics.PhysicsObject;
 import ray.physics.PhysicsEngineFactory;
+import ray.audio.*;
+// import com.jogamp.openal.ALFactory;
 
 public class MyGame extends VariableFrameRateGame
 {
@@ -105,6 +107,11 @@ public class MyGame extends VariableFrameRateGame
 	private double[] netPosTransform; 
 	private boolean running = true;
 	private float ballAngle = 0.0f;
+	
+	private Tessellation tessTest; // Sound Variables. 
+	private float movemt = 0.01f;
+	IAudioManager audioMgr;
+	Sound oceanSound, bkgdMusic;
 		
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
@@ -359,10 +366,64 @@ public class MyGame extends VariableFrameRateGame
         
         // Create Model Object with Animations/Skeleton/Mesh
     	//System.out.println("Check 01");
-        //initalizeModelMKnight();
-        //System.out.println("Check 02");
+        initalizeTestModel();
+        
+        initAudio(sm);
+        
+        System.out.println("End SceneSetup");
         // End
     }
+
+    // SOUND SETUP Start
+	private void initAudio(SceneManager sm) 
+	{
+		AudioResource resource1;//, resource2;
+		audioMgr = AudioManagerFactory.createAudioManager(
+				"ray.audio.joal.JOALAudioManager");
+		if (!audioMgr.initialize())
+		{   
+			System.out.println("Audio Manager failed to initialize!");
+			return;
+		}
+		resource1 = audioMgr.createAudioResource("bensound_dreams_background_music.wav",
+				AudioResourceType.AUDIO_SAMPLE);
+		
+		bkgdMusic = new Sound(resource1, SoundType.SOUND_EFFECT, 100, true);
+		bkgdMusic.initialize(audioMgr);
+		
+		bkgdMusic.setMaxDistance(10.0f);
+		bkgdMusic.setMinDistance(0.5f);
+		bkgdMusic.setRollOff(5.0f);
+		
+		SceneNode ballN = sm.getSceneNode("gameBallNode");
+		bkgdMusic.setLocation(ballN.getWorldPosition());
+
+		setEarParameters(sm);
+		
+		bkgdMusic.play();
+	}
+	
+	private void setEarParameters(SceneManager sm) 
+	{
+		SceneNode clientN = sm.getSceneNode("clientModelNode"); // Change
+		Vector3 avDir = orbitController1.obtainCameraPosition(); // Gets forward vector position of camera. 
+		
+		// note - should get the camera's forward direction
+		// - avatar direction plus azimuth
+		
+		audioMgr.getEar().setLocation(clientN.getWorldPosition());
+		audioMgr.getEar().setOrientation(avDir, Vector3f.createFrom(0,1,0));
+	}
+	
+	public void updateGameSounds()
+	{
+		SceneManager sm = getEngine().getSceneManager();
+		SceneNode ballN = sm.getSceneNode("gameBallNode");
+
+		bkgdMusic.setLocation(ballN.getWorldPosition());
+		setEarParameters(sm);
+	}
+	// SOUND SETUP End
 
 	protected void setupInputs()
     { 
@@ -481,6 +542,7 @@ public class MyGame extends VariableFrameRateGame
 		temptf = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
 		gameBallPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
 		gameBallPhysObj.setBounciness(1.5f);
+		gameBallPhysObj.setDamping(0.5f, 0.0f); 
 		gameBallN.scale(0.1f, 0.1f, 0.1f);
 		gameBallN.setPhysicsObject(gameBallPhysObj);
 		
@@ -702,6 +764,8 @@ public class MyGame extends VariableFrameRateGame
     	int p1ViewX = renderWindow.getViewport(0).getActualLeft(), 
     		p1ViewY = renderWindow.getViewport(0).getActualBottom();
     	
+		System.out.println("Update print out. Num1");
+
 		// build and set HUD
 		rs = (GL4RenderSystem) engine.getRenderSystem();
 		elapsTime += engine.getElapsedTimeMillis();
@@ -715,17 +779,19 @@ public class MyGame extends VariableFrameRateGame
 		// tell the input manager to process the inputs
 		im.update(elapsTime);
 				
+		System.out.println("Update print out. Num2");
 		processNetworking(elapsTime/1000.0f);    // Process Network Needs
 		
 		orbitController1.updateCameraPosition(); // Updates Orbit Controller 
 		
 		generateDeltaTime(elapsTime/1000.0f);    // Updates the player's elapsed time rate for movement.
-		
+		System.out.println("Update print out. Num3");
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
-		//updateAnimations(); // Updates Model Animations
-		
+		updateAnimations(); // Updates Model Animations
+		System.out.println("update POST - A?");
 		updateServerBallPosition(); // Sends the Server an update on ball position. 
+		System.out.println("End of Update Call. ");
 	}
 
 	// Updates the player's elapsed time rate for movement.
@@ -829,12 +895,12 @@ public class MyGame extends VariableFrameRateGame
 	}
 
 	// Sets up the Model Mesh, Skeleton, and Animation(s). Setup: MayaKnight01.
-	public void initalizeModelMKnight() throws IOException
+	public void initalizeTestModel() throws IOException
 	{
 		// load skeletal entity – in this case it is an avatar
 		// parameters are: entity name, mesh file, skeleton file
 		SceneManager sm = getEngine().getSceneManager(); 
-		SkeletalEntity mSkeletonE = sm.createSkeletalEntity("mayaKnightAv", "TestModel02.rkm", "TestModel_Skeleton02.rks");
+		SkeletalEntity mSkeletonE = sm.createSkeletalEntity("testModel", "TestModel-Mesh.rkm", "TestModel-Skeleton.rks");
 		
 		if (mSkeletonE == null)
 		{
@@ -845,45 +911,47 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("SkeletalEntity Info: " + mSkeletonE.toString());
 			System.out.println("SkeletalEntity Name Info: " + mSkeletonE.getName());
 			System.out.println("SkeletalEntity Mesh Info: " + mSkeletonE.getMesh().getName());
-
 		}
 		
 
 		// loading its texture in the standard way
-		Texture tex12 = sm.getTextureManager().getAssetByPath("Cube_UV_Texture02.png");
+		Texture tex12 = sm.getTextureManager().getAssetByPath("UV_TestTexture.png");
 		TextureState tstate12 = (TextureState) sm.getRenderSystem().createRenderState(RenderState.Type.TEXTURE);
 		tstate12.setTexture(tex12);
 		mSkeletonE.setRenderState(tstate12);
 		
 		// load the model's animations
-		mSkeletonE.loadAnimation("handsUp-Animation", 
-				"TestModel_HandsUp_Animation02.rka"); // replace names. 
-		mSkeletonE.loadAnimation("walk-Animation", 
-				"TestModel_RHandUp_Animation02.rka");
+		mSkeletonE.loadAnimation("handsUp_A", 
+				"TestModel_HandsWave_Animation.rka"); // replace names. 
+		mSkeletonE.loadAnimation("one_Hand_A", 
+				"TestModel_One_Hand_Wave_Animation.rka");
 
 		// attach the skeletal entity to a scene node
-		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode("Test_Node");
+		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode("testModelNode");
+		modSkeletonN.setLocalPosition(0.0f, 1.0f, -1.0f);
 		//modSkeletonN.attachObject(mSkeletonE);
-		//modSkeletonN.setLocalPosition(0.0f, 0.0f, -2.0f);
-		
 	}
 
 	// Put Animations to be updated constantly in this function
 	private void updateAnimations()
 	{
-		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("mayaKnightAv");
-
+		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
+		System.out.println("update A?");
 		// update the animation
 		if (manSE != null)
 		{   manSE.update();   }
+		else
+		{
+			System.out.println("Animation NULL.");
+		}
 	}
 	
-	/*private void doHandsUp()
+	private void doHandsUp()
 	{ 
-		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("mayaKnightAv");
+		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
 		manSE.stopAnimation(); // Stop Current Animation (if Any)
-		manSE.playAnimation("handsUp-Animation", 0.5f, EndType.LOOP, 0);
-	}*/
+		manSE.playAnimation("handsUp_A", 0.5f, EndType.LOOP, 0);
+	}
 	
 	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
 	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException

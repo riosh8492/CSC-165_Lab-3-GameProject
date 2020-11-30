@@ -1,4 +1,4 @@
-package myGame;
+package myGameEngine;
 
 import java.awt.*;
 import java.awt.event.*;
