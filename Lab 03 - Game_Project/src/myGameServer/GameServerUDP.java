@@ -22,6 +22,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	private String[][] clientAddressList; 
 	private NPC_Controller npcCtrl;
 	private Vector3f gameBallPosition = null; 
+	private boolean oneTime = true; 
 	
 	public GameServerUDP(int localPort) throws IOException
 	{ 
@@ -41,6 +42,12 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		if(msgTokens.length > 0)
 		{
 			System.out.println("\nGame Server UDP - MSG: " + message);
+			
+			if (oneTime) // Tempt disable.
+			{
+				//npcCtrl.start(); // Starts NPC loop. 
+				oneTime = false;
+			}
 			
 			// case where server receives a JOIN messagec
 			if(msgTokens[0].compareTo("join") == 0)
@@ -316,23 +323,28 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	}
 	
 	// NPC Server Methods
-	public void sendNPCinfo() // informs clients of new NPC positions
+	// Used by NPC Controller. Which has BT tree and AI etc. 
+	public void sendNPCinfo() // informs clients of current/new NPC positions
 	{ 
 		String msg; 
-	
+		NPC npc;
 		for (int i=0; i < npcCtrl.obtainNpcAmount(); i++)
 		{ 
-			try
-			{ 
-				msg = new String("mnpc," + Integer.toString(i));
-				msg += "," + (npcCtrl.getNPC(i)).getX();
-				msg += "," + (npcCtrl.getNPC(i)).getY();
-				msg += "," + (npcCtrl.getNPC(i)).getZ();
-				sendPacketToAll(msg);
-			}
-			catch (IOException e)
+			npc = npcCtrl.getNPC(i); 
+			if (npc != null)
 			{
-				System.out.println("ERROR in func: sendNPCinfo().");
+				try
+				{ 
+					msg = new String("m_npc," + Integer.toString(i));
+					msg += "," + npc.getX();
+					msg += "," + npc.getY();
+					msg += "," + npc.getZ();
+					sendPacketToAll(msg);
+				}
+				catch (IOException e)
+				{
+					System.out.println("ERROR in func: sendNPCinfo().");
+				}
 			}
 		}
 	}
@@ -351,7 +363,9 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 
 	// Function to give Game Server a reference to NPC Controller. 
 	public void obtainNPCReference(NPC_Controller givenController) 
-	{   npcCtrl = givenController;   }
+	{   
+		npcCtrl = givenController;  
+	}
 	
 	public Vector3f obtainServerBallPosition()
 	{   

@@ -17,9 +17,9 @@ public class GhostNPC
 		position = givenPos; 
 	}
 	
-	public void setPosition(Vector3 position)
+	public void setPosition(Vector3 pos)
 	{
-		node.setLocalPosition(position);
+		position = pos; 
 	}
 	
 	public Vector3 getPosition()

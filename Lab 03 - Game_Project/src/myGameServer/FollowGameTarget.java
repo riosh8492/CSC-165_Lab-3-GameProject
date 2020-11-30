@@ -17,9 +17,10 @@ public class FollowGameTarget extends BTAction
 	@Override
 	protected BTStatus update(float timeRate) 
 	{
-		// Basically when this is called, it moves the NPC toward the ball bit by bit.
+		// Basically when this is called, it moves all NPCs toward the ball bit by bit.
 		// CALL ON NPC Controller to update all npcs then call game server to send
 		// NPC move updates. 
+		npc_ctrl.followTargetAction(localServer.obtainServerBallPosition()); 
 		return BTStatus.BH_SUCCESS;
 	}
 }

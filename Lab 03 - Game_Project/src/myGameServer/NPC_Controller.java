@@ -3,8 +3,10 @@ package myGameServer;
 import ray.ai.behaviortrees.BTCompositeType;
 import ray.ai.behaviortrees.BTSequence;
 import ray.ai.behaviortrees.BehaviorTree;
+import ray.rml.Vector3f;
+import java.lang.Thread;
 
-public class NPC_Controller 
+public class NPC_Controller extends Thread
 {
 	private int numNPCs = 5; 
 	private int amountNPCs = 0; 
@@ -21,9 +23,7 @@ public class NPC_Controller
 		localServer = givenServer; 
 		
 		for (i = 0; i < NPClist.length; i++) // Empty out storage. 
-		{   NPClist[i] = null;   }
-		
-		start(); // Begins NPC BehaviorTree loop operations. 
+		{   NPClist[i] = null;   }		
 	}
 	
 	public void start()
@@ -35,6 +35,7 @@ public class NPC_Controller
 		// setupNPC(); -> client sends request. 
 		setupBehaviorTree();
 		npcLoop();
+		System.out.println("Start () ENDING"); 
 	}
 	
 	private void npcLoop() 
@@ -50,20 +51,23 @@ public class NPC_Controller
 			elapsedThinkMilliSecs = (currentTime-lastThinkUpdateTime)/(1000000.0f);
 			elapsedTickMilliSecs = (currentTime-lastTickUpdateTime)/(1000000.0f);
 			elapsedMilliSecs = (currentTime-previousTime);
-			
+			previousTime = currentTime; // Get Average elapsed time. 
+
 			if (elapsedTickMilliSecs >= 50.0f) // “TICK” -> Times= for action.
 			{ 
+				System.out.println("-- TICK");
 				lastTickUpdateTime = currentTime;
-				updateNPCs();   // npc.updateLocation();
-				localServer.sendNPCinfo(); // Tell Server to send NPC info.
+				//updateNPCs();   // npc.updateLocation();
+				localServer.sendNPCinfo(); // Tell Server to send NPC info to all clients for update.
 			}
 			if (elapsedThinkMilliSecs >= 500.0f) // “THINK” -> Time for thinking of action choice.
 			{ 
+				System.out.println("-- THINK");
 				lastThinkUpdateTime = currentTime;
 				bt.update(elapsedMilliSecs);
 			}
-			previousTime = currentTime; // Get Average elapsed time. 
-			Thread.yield();
+			//Thread.yield();
+			NPC_Controller.yield();
 		} 
 	}
 
@@ -95,17 +99,11 @@ public class NPC_Controller
 	}
 	
 	// This basically updates their positions. I guess. 
-	public void updateNPCs()
-	{ 
-		for (int i=0; i<numNPCs; i++)
-		{ 
-				NPClist[i].updateLocation();
-		} 
-	}
+	public void updateNPCs() {}
 
 	public void setupNPCs() 
 	{
-		System.out.println("NPC controller -> Set Up NPCs");
+		//System.out.println("NPC controller -> Set Up NPCs");
 	}
 
 	// Returns NPC at index given.
@@ -114,4 +112,29 @@ public class NPC_Controller
 	
 	public int obtainNpcAmount()
 	{   return amountNPCs;   }
+
+	// Go through all NPCs, move them and send out npc update to clients. 
+	public void followTargetAction(Vector3f ballPos) 
+	{
+		int i;
+		float moveDelta = 0.0f; 
+		NPC npc;
+		
+		for (i = 0; i < amountNPCs; i++)
+		{
+			npc = NPClist[i];
+			if (npc != null)
+			{
+				// Update position if not equal x axis position.
+				if (npc.getX() != ballPos.x())
+				{
+					moveDelta = (npc.getX() > ballPos.x()) ? -0.2f : 0.2f;
+					moveDelta = (ballPos.x() == 0.0f) ? 0.0f : moveDelta; 
+					
+					npc.updateLocation(npc.getX() + moveDelta, npc.getY(), npc.getZ());
+				}
+			}
+		}
+	 	
+	}
 }

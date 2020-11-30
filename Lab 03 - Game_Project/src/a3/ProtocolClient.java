@@ -159,11 +159,11 @@ public class ProtocolClient extends GameConnectionClient
 			if(msgTokens[0].compareTo("m_npc") == 0)
 			{ 
 				int npcGhostID = Integer.parseInt(msgTokens[1]);
-				Vector3 ghostPosition = Vector3f.createFrom(
+				Vector3 updateGhostPos = Vector3f.createFrom(
 						Float.parseFloat(msgTokens[2]),
 						Float.parseFloat(msgTokens[3]),
 						Float.parseFloat(msgTokens[4]));
-				//updateGhostNPC(ghostID, ghostPosition);
+				updateGhostNPC(npcGhostID, updateGhostPos);
 			}
 		}
 	}
@@ -374,14 +374,20 @@ public class ProtocolClient extends GameConnectionClient
 	private void createGhostNPC(int id, Vector3 position)
 	{ 
 		GhostNPC newNPC = new GhostNPC(id, position);
-		ghostNPCs.add(newNPC);
+		//ghostNPCs.add(newNPC);
+		ghostNPCs.add(id, newNPC); // Id means index
 		game.addGhostNPCtoGameWorld(newNPC);
 	}
 	
 	// GHOST NPC Update. 
 	private void updateGhostNPC(int id, Vector3 position)
 	{ 
-		ghostNPCs.get(id).setPosition(position);
+		GhostNPC ghostNPC = ghostNPCs.get(id);
+		if (ghostNPC != null)
+		{
+			ghostNPC.setPosition(position);
+			game.updateNPCGhostAvatar(id, position);
+		}
 	}
 	
 	// Outward Request by Client to the SERVER. 
@@ -404,7 +410,7 @@ public class ProtocolClient extends GameConnectionClient
 		Vector3f ballPos = game.obtainBallLocation(); 
 		try
 		{ 
-			msg = new String("detailsForBall,");
+			msg = new String("detailsForBall");
 			msg += "," + ballPos.x()+"," + ballPos.y() + "," + ballPos.z();
 			sendPacket(msg);
 		}

@@ -7,7 +7,7 @@ import ray.rml.Vector3f;
 
 public class NPC 
 {
-	float locX, locY, locZ; // other state info goes here (FSM)
+	private float locX, locY, locZ; // other state info goes here (FSM)
 	private Vector3f position; 
 	private int indexID; 
 	
@@ -30,13 +30,14 @@ public class NPC
 	}
 
 	public Vector3f getVectorPos() { return position; }
-	public double getX() { return locX; }
-	public double getY() { return locY; }
-	public double getZ() { return locZ; }
+	public float getX() { return locX; }
+	public float getY() { return locY; }
+	public float getZ() { return locZ; }
 
-	public void updateLocation() 
+	// Updates this NPC's position. 
+	public void updateLocation(float f, float g, float h) 
 	{
-		// Return an update? 
+		locX = f; locY = g; locZ = h;
 	}
 	
 	public void setID(int givenID)

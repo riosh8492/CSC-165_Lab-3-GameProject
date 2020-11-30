@@ -172,16 +172,15 @@ public class MyGame extends VariableFrameRateGame
         System.out.println(requestIP);
     	givenIP = myObj.nextLine();
     	System.out.println(requestPort);
-    	givenPort = myObj.nextInt();	
-    	System.out.println(confirmRequest);
-    	        
+    	givenPort = myObj.nextInt();
+    	
         if (command.contains("S") || command.contains("s"))
         {
-        	// Possible problem in static port number. 
         	app = new NetworkingServer(givenPort, "UDP"); // Create Game Server. 
         }
             	
     	tempGame = new MyGame(givenIP, givenPort, "UDP"); // 127.0.0.1   
+		System.out.println("Client setup ENDING"); 
 
     	return tempGame;
     }
@@ -988,7 +987,19 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("Error Creating Ghost NPC in Client world.");
 			e.printStackTrace();   
 		}
+	}
 	
+	// Updates the given ghost NPC with new position. 
+	public void updateNPCGhostAvatar(int id, Vector3 pos) 
+	{
+		// NPC Ghost Node name formate: NPC_" + id + "_Node"
+		SceneManager sm = getEngine().getSceneManager();
+    	SceneNode npcGhost = sm.getSceneNode("NPC_"+ id + "_Node");
+    	
+    	if (npcGhost != null)
+    	{
+    		npcGhost.setLocalPosition(pos.x(), pos.y(), pos.z());
+    	}
 	}
 
 	// Returns an initial location for the requested NPC. 
