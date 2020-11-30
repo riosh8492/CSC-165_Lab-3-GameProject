@@ -34,7 +34,6 @@ import ray.rage.rendersystem.shader.GpuShaderProgram;
 import ray.rage.rendersystem.Renderable.*;
 import ray.rage.scene.*;
 import ray.rage.scene.Camera.Frustum.*;
-import ray.rage.scene.SkeletalEntity.EndType;
 import net.java.games.input.Controller;
 import ray.rage.scene.controllers.*;
 import ray.rage.util.BufferUtil;
@@ -42,6 +41,8 @@ import ray.rml.*;
 import ray.rage.rendersystem.gl4.GL4RenderSystem;
 import ray.rage.rendersystem.states.TextureState;
 import ray.rage.rendersystem.states.*;
+import static ray.rage.scene.SkeletalEntity.EndType.*;
+
 
 import ray.physics.PhysicsEngine;
 import ray.physics.PhysicsObject;
@@ -100,7 +101,6 @@ public class MyGame extends VariableFrameRateGame
 	private SceneNode gndNode, statNetNode; // Physics Variables. 
 	private final static String GROUND_E = "Ground";
 	private final static String GROUND_N = "GroundNode";
-	private static final EndType a3LOOP = EndType.LOOP;
 	private PhysicsEngine physicsEng; 
 	private PhysicsObject ball1PhysObj, ball2PhysObj;
 	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj, npcKnightPhysObj;
@@ -368,7 +368,7 @@ public class MyGame extends VariableFrameRateGame
     	//System.out.println("Check 01");
         initalizeTestModel();
         
-        initAudio(sm);
+        initAudio(sm); // Begins Sound Setup
         
         System.out.println("End SceneSetup");
         // End
@@ -753,8 +753,6 @@ public class MyGame extends VariableFrameRateGame
 	
 	public boolean getPhysicsRun()
 	{   return running;         }
-	
-	// Physics Utility End.
 	// Physics End.
 
 	// Game Logic Goes here. 
@@ -764,8 +762,6 @@ public class MyGame extends VariableFrameRateGame
     	int p1ViewX = renderWindow.getViewport(0).getActualLeft(), 
     		p1ViewY = renderWindow.getViewport(0).getActualBottom();
     	
-		System.out.println("Update print out. Num1");
-
 		// build and set HUD
 		rs = (GL4RenderSystem) engine.getRenderSystem();
 		elapsTime += engine.getElapsedTimeMillis();
@@ -779,18 +775,19 @@ public class MyGame extends VariableFrameRateGame
 		// tell the input manager to process the inputs
 		im.update(elapsTime);
 				
-		System.out.println("Update print out. Num2");
 		processNetworking(elapsTime/1000.0f);    // Process Network Needs
 		
 		orbitController1.updateCameraPosition(); // Updates Orbit Controller 
 		
 		generateDeltaTime(elapsTime/1000.0f);    // Updates the player's elapsed time rate for movement.
-		System.out.println("Update print out. Num3");
+
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
 		updateAnimations(); // Updates Model Animations
-		System.out.println("update POST - A?");
+
 		updateServerBallPosition(); // Sends the Server an update on ball position. 
+		
+		updateGameSounds(); 
 		System.out.println("End of Update Call. ");
 	}
 
@@ -950,7 +947,7 @@ public class MyGame extends VariableFrameRateGame
 	{ 
 		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
 		manSE.stopAnimation(); // Stop Current Animation (if Any)
-		manSE.playAnimation("handsUp_A", 0.5f, EndType.LOOP, 0);
+		manSE.playAnimation("handsUp_A", 0.5f, LOOP, 0);
 	}
 	
 	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
