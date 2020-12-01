@@ -310,18 +310,22 @@ public class MyGame extends VariableFrameRateGame
         // End of Set up Net Object. -----------------
         
         // Set Up other NPC Model Obj 1 -------------
-        Entity knightE = sm.createEntity("npc_knight", "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+        Entity knightE = sm.createEntity("npc_knight", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
         knightE.setPrimitive(Primitive.TRIANGLES);
         
         SceneNode knightN = sm.getRootSceneNode().createChildSceneNode(knightE.getName() + "Node");
-        knightN.setLocalPosition(3.0f, 0.5f, -1.0f);
-        //knightN.scale(0.08f, 0.08f, 0.08f);
+        knightN.setLocalPosition(3.0f, 1.0f, -1.0f);
+        //knightN.scale(2.0f, 2.0f, 2.0f);
         knightN.attachObject(knightE);
         // Set Up other NPC Model Obj 1 -----End-----
         
         
         // Set Up Model & Texture for Player 1 ---
-		Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+        
+        // Create Model Object with Animations/Skeleton/Mesh
+        initalizeTestModel("clientModel");
+        
+		/*Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
 		clientE.setPrimitive(Primitive.TRIANGLES);
         
         // Set client Node
@@ -330,7 +334,7 @@ public class MyGame extends VariableFrameRateGame
         clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
         clientN.setLocalPosition(0.0f, 0.5f, 2.5f);
         //clientN.scale(0.2f, 0.2f, 0.2f);
-        clientN.attachObject(clientE);
+        clientN.attachObject(clientE); // */ 
 		        
         // Set Up SkyBox/Map
         skyBox = new BasicSkyBox(eng, "desert");
@@ -362,14 +366,10 @@ public class MyGame extends VariableFrameRateGame
 		
 		SceneNode plightNode = sm.getRootSceneNode().createChildSceneNode("plightNode");
         plightNode.attachObject(plight);
-        plightNode.setLocalPosition(1.0f, 1.0f, 5.0f);
+        plightNode.setLocalPosition(0.0f, 3.0f, -3.0f);
 
         //sm.addController(rotateController); // Adds controller to SM.
         //sm.addController(customController);
-        
-        // Create Model Object with Animations/Skeleton/Mesh
-    	//System.out.println("Check 01");
-        initalizeTestModel();
         
         initAudio(sm); // Begins Sound Setup
         
@@ -544,24 +544,29 @@ public class MyGame extends VariableFrameRateGame
 		// Set Up Game Ball Object. 
 		temptf = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
 		gameBallPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
-		gameBallPhysObj.setBounciness(1.5f);
-		gameBallPhysObj.setDamping(0.5f, 0.0f); 
+		gameBallPhysObj.setBounciness(1.3f);
+		gameBallPhysObj.setDamping(0.7f, 0.0f); 
 		gameBallN.scale(0.1f, 0.1f, 0.1f);
 		gameBallN.setPhysicsObject(gameBallPhysObj);
 		
 		// Set Up Physics NPC Object
 		temptf = toDoubleArray(npcKnightN.getLocalTransform().toFloatArray());
-		npcKnightPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.7f);
+		npcKnightPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.82f);
 		npcKnightPhysObj.setBounciness(0.5f);
-		npcKnightN.scale(0.08f, 0.08f, 0.08f);
+		npcKnightN.scale(0.3f, 0.3f, 0.3f);
 		npcKnightN.setPhysicsObject(npcKnightPhysObj);
 				
 		// Set up client Object
 		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
 		clientPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.2f); // 0.2f w sphere.
 		clientPhysObj.setBounciness(0.5f);
-		clientN.scale(0.2f, 0.2f, 0.2f);
+      
+		//clientN.setLocalPosition(0.0f, 1.0f, 0.0f);
+      //clientN.rotate(Degreef.createFrom(-180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+
+		clientN.scale(0.13f, 0.13f, 0.13f);
 		clientN.setPhysicsObject(clientPhysObj);
+		clientN.setLocalPosition(0.0f, 0.5f, 2.5f);
 		
 		// Set up Court Net Object
 		//courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
@@ -896,12 +901,12 @@ public class MyGame extends VariableFrameRateGame
 	}
 
 	// Sets up the Model Mesh, Skeleton, and Animation(s). Setup: MayaKnight01.
-	public void initalizeTestModel() throws IOException
+	public void initalizeTestModel(String mainName) throws IOException
 	{
 		// load skeletal entity – in this case it is an avatar
 		// parameters are: entity name, mesh file, skeleton file
 		SceneManager sm = getEngine().getSceneManager(); 
-		SkeletalEntity mSkeletonE = sm.createSkeletalEntity("testModel", "Client_Mesh02.rkm", "Client_Model02_Skeleton.rks");
+		SkeletalEntity mSkeletonE = sm.createSkeletalEntity(mainName, "Client_Mesh02.rkm", "Client_Model02_Skeleton.rks");
 		
 		if (mSkeletonE == null)
 		{
@@ -913,7 +918,6 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("SkeletalEntity Name Info: " + mSkeletonE.getName());
 			System.out.println("SkeletalEntity Mesh Info: " + mSkeletonE.getMesh().getName());
 		}
-		
 
 		// loading its texture in the standard way
 		Texture tex12 = sm.getTextureManager().getAssetByPath("Client_UV_Model02.png");
@@ -928,16 +932,15 @@ public class MyGame extends VariableFrameRateGame
 				"Client_Model02_Walk_Animation.rka");
 
 		// attach the skeletal entity to a scene node
-		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode("testModelNode");
+		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode(mainName + "Node");
 		modSkeletonN.attachObject(mSkeletonE);
-		
-		modSkeletonN.setLocalPosition(0.0f, 1.0f, -1.0f);
+		modSkeletonN.setLocalPosition(0.0f, 0.5f, 2.5f);
 	}
 
 	// Put Animations to be updated constantly in this function
 	private void updateAnimations()
 	{
-		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
+		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("clientModel");
 		// update the animation
 		if (manSE != null)
 		{   manSE.update();   }
@@ -960,7 +963,7 @@ public class MyGame extends VariableFrameRateGame
 	{ 
 		if (initWalkAnimation)
 		{
-			SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
+			SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("clientModel");
 			manSE.stopAnimation(); // Stop Current Animation (if Any)
 			manSE.playAnimation("walkMovement", 0.5f, LOOP, 0);
 			initHandsWaveAnimation = false; // Once playing, set other animations status to false.
@@ -970,7 +973,7 @@ public class MyGame extends VariableFrameRateGame
 	{ 
 		if (initHandsWaveAnimation)
 		{
-			SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
+			SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("clientModel");
 			manSE.stopAnimation(); // Stop Current Animation (if Any)
 			manSE.playAnimation("handsWave", 0.5f, LOOP, 0);
 			initWalkAnimation = false; 
@@ -1073,7 +1076,7 @@ public class MyGame extends VariableFrameRateGame
 	        npcE.setPrimitive(Primitive.TRIANGLES);
 	        
 	        SceneNode npcNode = sm.getRootSceneNode().createChildSceneNode(npcE.getName() + "_Node");
-	        npcNode.setLocalPosition(pos.x(), pos.y(), pos.z());
+	        npcNode.setLocalPosition(pos.x(), pos.y()+1.0f, pos.z());
 	        npcNode.scale(0.10f, 0.10f, 0.10f);
 	        npcNode.attachObject(npcE);
 		}
