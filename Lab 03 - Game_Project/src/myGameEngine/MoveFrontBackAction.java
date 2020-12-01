@@ -123,7 +123,14 @@ public class MoveFrontBackAction extends AbstractInputAction
 		if (clientModelNode != null) // If there is a passed dolphin node, move dolphin front/back
 		{
 			givenTime = localGame.obtainTime1();
-			nodeModeAction(time/1000.0f, e); 
+			nodeModeAction(time/1000.0f, e);
+			
+			// If animation not already playing, play the animation. 
+			if (localGame.getWalkAnimationStatus() == false)
+			{
+				localGame.setWalkAnimationStatus(true);
+				localGame.doWalkAnimation();
+			}
 			
 			if (protClient != null)
 			{

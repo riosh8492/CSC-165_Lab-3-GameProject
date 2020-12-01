@@ -112,6 +112,9 @@ public class MyGame extends VariableFrameRateGame
 	private float movemt = 0.01f;
 	IAudioManager audioMgr;
 	Sound oceanSound, bkgdMusic;
+	
+	private boolean initWalkAnimation = false;     // Animation variables. 
+	private boolean initHandsWaveAnimation = false;
 		
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
@@ -784,6 +787,7 @@ public class MyGame extends VariableFrameRateGame
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
 		updateAnimations(); // Updates Model Animations
+		// doWalkAnimation();
 
 		updateServerBallPosition(); // Sends the Server an update on ball position. 
 		
@@ -897,7 +901,7 @@ public class MyGame extends VariableFrameRateGame
 		// load skeletal entity – in this case it is an avatar
 		// parameters are: entity name, mesh file, skeleton file
 		SceneManager sm = getEngine().getSceneManager(); 
-		SkeletalEntity mSkeletonE = sm.createSkeletalEntity("testModel", "TestModel-Mesh.rkm", "TestModel-Skeleton.rks");
+		SkeletalEntity mSkeletonE = sm.createSkeletalEntity("testModel", "Client_Mesh02.rkm", "Client_Model02_Skeleton.rks");
 		
 		if (mSkeletonE == null)
 		{
@@ -912,28 +916,28 @@ public class MyGame extends VariableFrameRateGame
 		
 
 		// loading its texture in the standard way
-		Texture tex12 = sm.getTextureManager().getAssetByPath("UV_TestTexture.png");
+		Texture tex12 = sm.getTextureManager().getAssetByPath("Client_UV_Model02.png");
 		TextureState tstate12 = (TextureState) sm.getRenderSystem().createRenderState(RenderState.Type.TEXTURE);
 		tstate12.setTexture(tex12);
 		mSkeletonE.setRenderState(tstate12);
 		
 		// load the model's animations
-		mSkeletonE.loadAnimation("handsUp_A", 
-				"TestModel_HandsWave_Animation.rka"); // replace names. 
-		mSkeletonE.loadAnimation("one_Hand_A", 
-				"TestModel_One_Hand_Wave_Animation.rka");
+		mSkeletonE.loadAnimation("handsWave", 
+				"Client_Model02_HandsWave_Animation.rka"); // replace names. 
+		mSkeletonE.loadAnimation("walkMovement", 
+				"Client_Model02_Walk_Animation.rka");
 
 		// attach the skeletal entity to a scene node
 		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode("testModelNode");
+		modSkeletonN.attachObject(mSkeletonE);
+		
 		modSkeletonN.setLocalPosition(0.0f, 1.0f, -1.0f);
-		//modSkeletonN.attachObject(mSkeletonE);
 	}
 
 	// Put Animations to be updated constantly in this function
 	private void updateAnimations()
 	{
 		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
-		System.out.println("update A?");
 		// update the animation
 		if (manSE != null)
 		{   manSE.update();   }
@@ -943,12 +947,38 @@ public class MyGame extends VariableFrameRateGame
 		}
 	}
 	
-	private void doHandsUp()
+	public boolean getWalkAnimationStatus()
+	{   return initWalkAnimation;   }
+	public boolean getHandsUpAnimationStatus()
+	{   return initHandsWaveAnimation;   }
+	public void setWalkAnimationStatus(boolean givenInput)
+	{   initWalkAnimation = givenInput;   }
+	public void setHandsUpAnimationStatus(boolean givenInput)
+	{   initHandsWaveAnimation = givenInput;   }
+	
+	public void doWalkAnimation()
 	{ 
-		SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
-		manSE.stopAnimation(); // Stop Current Animation (if Any)
-		manSE.playAnimation("handsUp_A", 0.5f, LOOP, 0);
+		if (initWalkAnimation)
+		{
+			SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
+			manSE.stopAnimation(); // Stop Current Animation (if Any)
+			manSE.playAnimation("walkMovement", 0.5f, LOOP, 0);
+			initHandsWaveAnimation = false; // Once playing, set other animations status to false.
+		}
 	}
+	public void doHandsUp()
+	{ 
+		if (initHandsWaveAnimation)
+		{
+			SkeletalEntity manSE = (SkeletalEntity) getEngine().getSceneManager().getEntity("testModel");
+			manSE.stopAnimation(); // Stop Current Animation (if Any)
+			manSE.playAnimation("handsWave", 0.5f, LOOP, 0);
+			initWalkAnimation = false; 
+			initHandsWaveAnimation = false;
+		}
+	}
+	
+	
 	
 	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
 	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException

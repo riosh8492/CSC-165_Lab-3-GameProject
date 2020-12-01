@@ -382,11 +382,21 @@ public class ProtocolClient extends GameConnectionClient
 	// GHOST NPC Update. 
 	private void updateGhostNPC(int id, Vector3 position)
 	{ 
-		GhostNPC ghostNPC = ghostNPCs.get(id);
-		if (ghostNPC != null)
+		GhostNPC ghostNPC;
+		
+		if (ghostNPCs.size() != 0)
+		{		
+			ghostNPC = ghostNPCs.get(id);
+			if (ghostNPC != null)
+			{
+				ghostNPC.setPosition(position);
+				game.updateNPCGhostAvatar(id, position);
+			}
+			
+		}
+		else // If no NPC to update, then make one.  
 		{
-			ghostNPC.setPosition(position);
-			game.updateNPCGhostAvatar(id, position);
+			createGhostNPC(id, position); 
 		}
 	}
 	
