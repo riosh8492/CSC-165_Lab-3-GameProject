@@ -115,7 +115,12 @@ public class MyGame extends VariableFrameRateGame
 	
 	private boolean initWalkAnimation = false;     // Animation variables. 
 	private boolean initHandsWaveAnimation = false;
-		
+	private boolean originBallSender = true; // Networking related. 
+	
+	private boolean playerStatus = false;
+	private Vector3f clientPos1 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, 3.0f); // Positioning. 
+	private Vector3f clientPos2 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, -3.0f);	
+	
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
         super();
@@ -163,34 +168,21 @@ public class MyGame extends VariableFrameRateGame
     	boolean userConfirm = false; 
     	String command, givenIP = "10.0.0.246";
     	int    givenPort = 6020;
-    	String initalRequest = "For Single Player, Enter 'S'. For Network Multiplayer, Enter 'M'. ";
+    	String initalRequest = "Welcome to GL Sports Volleyball Game.";
     	String requestIP = "Enter IP address. ";
     	String requestPort = "Enter Port Number. ";
     	String confirmInput = "", confirmRequest = "Enter (Y/N) to Confirm... ";
     	Scanner myObj = new Scanner(System.in);  // Create a Scanner object
         
-    	System.out.println(initalRequest);
-        command = myObj.nextLine();  // Read user input
+    	System.out.println(initalRequest); // Greet User. 
         
-        // Get decision on whether single player or network. 
-        while (!command.contains("M") && !command.contains("S"))
-        {
-        	System.out.println("Invalid Command Given.\n" + initalRequest);
-        	command = myObj.nextLine(); 
-        }
-        
-        System.out.println(requestIP);
+        System.out.println(requestIP); // Get IP address from user.
     	givenIP = myObj.nextLine();
-    	System.out.println(requestPort);
+    	System.out.println(requestPort); // Get Port Number from user. 
     	givenPort = myObj.nextInt();
-    	
-        if (command.contains("S") || command.contains("s"))
-        {
-        	app = new NetworkingServer(givenPort, "UDP"); // Create Game Server. 
-        }
             	
     	tempGame = new MyGame(givenIP, givenPort, "UDP"); // 127.0.0.1   
-		System.out.println("Client setup ENDING"); 
+		System.out.println("Client Initilization complete."); 
 
     	return tempGame;
     }
@@ -292,7 +284,7 @@ public class MyGame extends VariableFrameRateGame
     	sphereE.setPrimitive(Primitive.TRIANGLES);
     	SceneNode sphereN = sm.getRootSceneNode().createChildSceneNode(sphereE.getName() + "Node");
     	sphereN.attachObject(sphereE);
-    	sphereN.setLocalPosition(0.0f, 0.5f, 1.1f);
+    	sphereN.setLocalPosition(0.0f, 0.5f, 2.0f);
     	ballPosition = (Vector3f) sphereN.getLocalPosition(); 
     	//sphereN.scale(0.1f, 0.1f, 0.1f);
   
@@ -302,7 +294,7 @@ public class MyGame extends VariableFrameRateGame
         courtNetE.setPrimitive(Primitive.TRIANGLES);
         
         SceneNode courtNetN = sm.getRootSceneNode().createChildSceneNode(courtNetE.getName() + "Node");
-        courtNetN.setLocalPosition(0.0f, 2.0f, 0.0f);
+        courtNetN.setLocalPosition(0.0f, 1.0f, 0.0f);
         //courtNetN.rotate(Degreef.createFrom(90.0f), courtNetN.getLocalPosition()); // Trying to position the dolphin to face -z axis
         //courtNetN.scale(0.15f, 0.15f, 0.15f);
         //courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
@@ -323,16 +315,17 @@ public class MyGame extends VariableFrameRateGame
         // Set Up Model & Texture for Player 1 ---
         
         // Create Model Object with Animations/Skeleton/Mesh
-        initalizeTestModel("clientModel");
+        // initalizeTestModel("clientModel");
         
-		/*Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+        //* Block out this set up to then use animated model in inititalizeModel. 
+		Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
 		clientE.setPrimitive(Primitive.TRIANGLES);
         
         // Set client Node
         SceneNode clientN = sm.getRootSceneNode().createChildSceneNode(clientE.getName() + "Node"); // clientModelNode
         clientN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
         clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-        clientN.setLocalPosition(0.0f, 0.5f, 2.5f);
+        clientN.setLocalPosition(0.0f, 0.5f, 3.0f);
         //clientN.scale(0.2f, 0.2f, 0.2f);
         clientN.attachObject(clientE); // */ 
 		        
@@ -352,21 +345,8 @@ public class MyGame extends VariableFrameRateGame
     	// OrbitCamera Set Up. In this Order
         setupOrbitCamera(eng, sm);
         
-        // Lighting Environment
-        sm.getAmbientLight().setIntensity(new Color(.4f, .4f, .4f)); // was .3f
-        
-        /* try different values for setRange(), setConstantAttenuation(), 
-         * setLinearAttenuation(), and setQuadraticAttenuation(). 
-         * You can also try different types of lights, such as "point" lights versus "spot" lights. */
-		Light plight = sm.createLight("testLamp1", Light.Type.SPOT); // Was Point
-		plight.setAmbient(new Color(.3f, .3f, .3f));
-        plight.setDiffuse(new Color(.8f, .8f, .8f));
-		plight.setSpecular(new Color(1.0f, 1.0f, 1.0f));
-        plight.setRange(30f);
-		
-		SceneNode plightNode = sm.getRootSceneNode().createChildSceneNode("plightNode");
-        plightNode.attachObject(plight);
-        plightNode.setLocalPosition(0.0f, 3.0f, -3.0f);
+        // Set up any area Lights
+        setUpLights(sm);
 
         //sm.addController(rotateController); // Adds controller to SM.
         //sm.addController(customController);
@@ -374,7 +354,26 @@ public class MyGame extends VariableFrameRateGame
         initAudio(sm); // Begins Sound Setup
         
         System.out.println("End SceneSetup");
-        // End
+        // End Scene Set Up
+    }
+    
+    private void setUpLights(SceneManager sm)
+    {
+    	// Lighting Environment
+        sm.getAmbientLight().setIntensity(new Color(.4f, .4f, .4f)); // was .3f
+        
+        /* try different values for setRange(), setConstantAttenuation(), 
+         * setLinearAttenuation(), and setQuadraticAttenuation(). 
+         * You can also try different types of lights, such as "point" lights versus "spot" lights. */
+		Light plight = sm.createLight("testLamp1", Light.Type.SPOT); // Was Point
+		plight.setAmbient(new Color(.1f, .1f, .1f));
+        plight.setDiffuse(new Color(.7f, .7f, .7f));
+		plight.setSpecular(new Color(1.0f, 1.0f, 1.0f));
+        plight.setRange(30.0f);
+		
+		SceneNode plightNode = sm.getRootSceneNode().createChildSceneNode("plightNode");
+        plightNode.attachObject(plight);
+        plightNode.setLocalPosition(0.0f, 3.0f, -3.0f);
     }
 
     // SOUND SETUP Start
@@ -533,7 +532,7 @@ public class MyGame extends VariableFrameRateGame
 		float mass = 1.0f;
 		float up[] = {0,1,0};
 		float clientHitbox[] = {0.8f, 2.0f, 1.8f};
-		float courtNetHitbox[] = {4.5f, 3.0f, 0.3f};
+		float courtNetHitbox[] = {4.0f, 2.0f, .5f};
 		double[] temptf;
 		
 		SceneNode gameBallN = getEngine().getSceneManager().getSceneNode("gameBallNode"); 
@@ -560,26 +559,23 @@ public class MyGame extends VariableFrameRateGame
 		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
 		clientPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.2f); // 0.2f w sphere.
 		clientPhysObj.setBounciness(0.5f);
-      
-		//clientN.setLocalPosition(0.0f, 1.0f, 0.0f);
-      //clientN.rotate(Degreef.createFrom(-180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-
+     
 		clientN.scale(0.13f, 0.13f, 0.13f);
+		clientN.setLocalPosition(0.0f, 0.5f, 3.0f); // below 1
 		clientN.setPhysicsObject(clientPhysObj);
-		clientN.setLocalPosition(0.0f, 0.5f, 2.5f);
 		
 		// Set up Court Net Object
-		//courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
-		temptf = toDoubleArray(statNetNode.getLocalTransform().toFloatArray());
-		netPosTransform = toDoubleArray(statNetNode.getLocalTransform().toFloatArray());
+		courtNetN.setLocalPosition(0.0f, 1.0f, 0.0f); // statNetNode
+		temptf = toDoubleArray(courtNetN.getLocalTransform().toFloatArray());
+		netPosTransform = toDoubleArray(courtNetN.getLocalTransform().toFloatArray());
 		courtNetPhysObj = physicsEng.addBoxObject(physicsEng.nextUID(), mass, temptf, courtNetHitbox); // 0.2f w sphere.
-		courtNetPhysObj.setBounciness(1.0f);
+		courtNetPhysObj.setBounciness(0.3f);
 		courtNetN.setLocalPosition(0.0f, 1.0f, 0.0f);
 		courtNetN.rotate(Degreef.createFrom(90.0f), courtNetN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-		courtNetN.setLocalPosition(0.0f, 1.0f, -2.0f);
+		//courtNetN.setLocalPosition(0.0f, 1.0f, 0.0f); // Was: 0, 1, (-2)
 		courtNetN.scale(0.15f, 0.15f, 0.15f);
 		courtNetN.setPhysicsObject(courtNetPhysObj);
-
+		// 0.0f, 2.0f, 0.0f -> Idea position. 
 		
 		temptf = toDoubleArray(gndNode.getLocalTransform().toFloatArray());
 		gndPlaneP = physicsEng.addStaticPlaneObject(physicsEng.nextUID(), temptf, up, 0.0f);
@@ -608,11 +604,6 @@ public class MyGame extends VariableFrameRateGame
 
 				if (currentPhysObj != null)
 				{   
-					//System.out.println("PhysObj-transform: " + toFloatArray(currentPhysObj.getTransform()));
-					
-					//mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
-					//s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
-					
 					findCollisionPair(s); 
 					
 					if (s.getName().contains("client"))// || s.getName().contains("Net"))
@@ -667,15 +658,6 @@ public class MyGame extends VariableFrameRateGame
 		
 				if (condition1 && condition2) // There is a match pair. 
 				{
-					//System.out.println("condition1: " + condition1);
-					//System.out.println("condition2: " + condition2);
-					
-					//System.out.println("currentNode Name(): " + currentNode.getName());
-					//System.out.println("s Name: " + s.getName());
-					
-					//System.out.println("currentNode Pos: " + currentNode.getLocalPosition());
-					//System.out.println("s Pos: " + s.getLocalPosition());
-					
 					collisionRecord.add(currentNode); // Add the matched Pair. 
 					collisionRecord.add(s);
 					handlePossibleCollision(currentNode, s); // Handle collision possibility here. 
@@ -706,28 +688,61 @@ public class MyGame extends VariableFrameRateGame
 		
 		boolean condition5 = ( (curZPos + bounds) > (tempZPos - bounds)) ? true : false;
 		boolean condition6 = ( (curZPos - bounds) < (tempZPos + bounds)) ? true : false;
-		
+				
 		if (collisionRecord.size() != 0) // Ensure we aren't going through empty list. 
 		{
 			if (condition3 && condition4 && condition5 && condition6)
 			{
 				System.out.println("Collising occuring.");
 				
-				if (initialObj.getName().contains("Ball"))
-				{   
-					//System.out.println("Ball encountered.");
-					objPhys1.applyTorque(1.0f, 0.0f, 0.0f);
-					ballAngle = 1.0f;
-				}
-				else if (tempObj.getName().contains("Ball"))
-				{   
-					//System.out.println("Ball encountered.");
-					objPhys2.applyTorque(1.0f, 0.0f, 0.0f); 
-					ballAngle = 1.5f;
+				if (!(initialObj.getName().contains("Net")) && !(tempObj.getName().contains("Net"))) 
+				{
+					if (initialObj.getName().contains("Ball"))
+					{   
+						//System.out.println("Ball encountered.");
+						//objPhys1.applyTorque(1.0f, 0.0f, 0.0f);
+						movePhysicsBall(initialObj); 
+						ballAngle = 1.0f;
+					}
+					else if (tempObj.getName().contains("Ball"))
+					{   
+						//System.out.println("Ball encountered.");
+						//objPhys2.applyTorque(1.0f, 0.0f, 0.0f); 
+						movePhysicsBall(tempObj);
+						ballAngle = 1.5f;
+					}
 				}
 			}
 		}
 		collisionRecord.clear(); // Empty out collision record.
+	}
+	
+	// Serves to make physics ball move at an angle for that game.
+	// Basically, for now: when model hits ball, push it at an angle. 
+	public void movePhysicsBall(SceneNode givenBall)
+	{
+		Vector3f ballPos = (Vector3f) givenBall.getLocalPosition();
+		PhysicsObject physBall = givenBall.getPhysicsObject(); 
+		
+		float forceAmt = 4.0f; 
+		float forceFloat  [] = new float [] {0.0f, 4.5f, -forceAmt}; 
+		float forceFloat2 [] = new float [] {0.0f, 4.5f, forceAmt}; 
+		
+		//physBall.setAngularVelocity(stopMotion); // Stop ball movement, and shoot ball. 
+		//physBall.setLinearVelocity(stopMotion);
+		
+		if (ballPos.z() > 0.1f)       // On the +Z Axis side of the net. 
+		{
+			//physBall.applyForce(0.0f, forceAmt, -forceAmt, 
+			//		ballPos.x(), ballPos.y(), ballPos.z());
+			physBall.setLinearVelocity(forceFloat);
+		}
+		else if (ballPos.z() < -0.1f) // On the -Z Axis side of the net.
+		{
+			//physBall.applyForce(0.0f, forceAmt, forceAmt, 
+			//		ballPos.x(), ballPos.y(), ballPos.z());
+			physBall.setLinearVelocity(forceFloat2);
+		}
 	}
 
 	// Physics Utility Functions
@@ -791,14 +806,21 @@ public class MyGame extends VariableFrameRateGame
 
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
-		updateAnimations(); // Updates Model Animations
-		// doWalkAnimation();
+		// updateAnimations(); // Updates Model Animations
 
 		updateServerBallPosition(); // Sends the Server an update on ball position. 
 		
 		updateGameSounds(); 
 		System.out.println("End of Update Call. ");
 	}
+    
+    // Goal to Manage Game Related Things: Scores, Ball Managemn
+    public void updateGameworldPlay()
+    {
+    	// The first client's ball location will be the one that is sent to all clients.
+    	// This is to ensure a syrchonized game state. Can be improved toward complete server control.
+    	
+    }
 
 	// Updates the player's elapsed time rate for movement.
 	private void generateDeltaTime(float currentTime) 
@@ -1145,6 +1167,28 @@ public class MyGame extends VariableFrameRateGame
 		{    return true;    } 
 		else 
 		{    return false;   }
+	}
+
+	// Repositions starting positions for client start up 
+	// Meant for multiplayer mostly. 
+	public void updateClientPosition(int serverClientCount) 
+	{
+		// clientPos1/2.
+    	SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode");
+		
+		if (serverClientCount == 1)
+		{
+			clientN.setLocalPosition(clientPos1.x(), clientPos1.y(), clientPos1.z());
+		}
+		else if (serverClientCount == 2)
+		{
+			clientN.setLocalPosition(clientPos2.x(), clientPos2.y(), clientPos2.z());
+		}
+		else 
+		{
+			clientN.setLocalPosition(clientPos1.x(), clientPos1.y(), clientPos1.z());
+		}
+		
 	}
 	
 }

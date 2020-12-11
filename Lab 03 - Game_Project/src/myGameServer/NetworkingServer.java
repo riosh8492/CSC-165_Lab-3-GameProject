@@ -47,7 +47,6 @@ public class NetworkingServer
 		npcCtrl = new NPC_Controller(thisUDPServer); // npcCtrl.setupNPCs();
 		thisUDPServer.obtainNPCReference(npcCtrl);
 		npcCtrl.start(); 
-		// npcLoop(); DISABLE LOOP for now. 
 	}
 
 	public static void main(String[] args)

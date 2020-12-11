@@ -23,6 +23,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	private NPC_Controller npcCtrl;
 	private Vector3f gameBallPosition = null; 
 	private boolean oneTime = true; 
+	private int clientAmount = 0;
 	
 	public GameServerUDP(int localPort) throws IOException
 	{ 
@@ -221,6 +222,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			{
 				clientAddressList[i][0] = ID;
 				clientAddressList[i][1] = IP_Address;
+				clientAmount += 1; // record client amount. 
 				break; 
 			}
 		}
@@ -239,6 +241,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			else 
 			{  message += "failure";  }
 			
+			message += ("," + clientAmount);
 			sendPacket(message, clientID);
 		}
 		catch (IOException e) 

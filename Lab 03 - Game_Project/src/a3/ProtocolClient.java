@@ -56,6 +56,7 @@ public class ProtocolClient extends GameConnectionClient
 				if(msgTokens[1].compareTo("success") == 0)
 				{ 
 					game.setIsConnected(true);
+					game.updateClientPosition(Integer.parseInt(msgTokens[2]));
 					sendCreateMessage(game.getPlayerPosition());
 					sendCreateMessage_NPC(game.getGhostPosition_NPC()); 
 				}

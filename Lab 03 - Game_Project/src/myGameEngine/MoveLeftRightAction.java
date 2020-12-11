@@ -73,12 +73,12 @@ public class MoveLeftRightAction extends AbstractInputAction
 		{
 			nodeModeAction(time/1000.0f, e);
 			
-			// If animation not already playing, play the animation. 
+			/*/ If animation not already playing, play the animation. 
 			if (localGame.getWalkAnimationStatus() == false)
 			{
 				localGame.setWalkAnimationStatus(true);
 				localGame.doWalkAnimation();
-			}
+			} // */ 
 			
 			if (protClient != null)
 			{
