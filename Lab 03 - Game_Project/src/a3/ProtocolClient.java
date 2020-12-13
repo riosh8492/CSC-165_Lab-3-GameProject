@@ -89,6 +89,7 @@ public class ProtocolClient extends GameConnectionClient
 						Float.parseFloat(msgTokens[4]));
 				
 					createGhostAvatar(ghostID, ghostPosition);
+					game.setClientGameStatus(true); // This notifies client that game is multiplayer. 
 				}
 			}
 			// Informs client that a remote client wants a local status update
@@ -114,6 +115,7 @@ public class ProtocolClient extends GameConnectionClient
 						Float.parseFloat(msgTokens[4]));
 
 				updateGhostAvatar(ghostID, pos);
+				game.setClientGameStatus(true); // This notifies client that game is multiplayer. 
 				System.out.println("Client - details for requested -> call sendDetailsForMessage");
 			}
 			// Request for Ball location. 

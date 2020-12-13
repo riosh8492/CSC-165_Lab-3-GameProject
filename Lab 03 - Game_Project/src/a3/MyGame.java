@@ -64,7 +64,7 @@ public class MyGame extends VariableFrameRateGame
 	SceneNode myCameraN;
 	
 	//Game variables
-	private int p1Score = 0;     // Score to be displayed
+	private int p1Score = 0, p2Score = 0;     // Score to be displayed
 	private BasicSkyBox skyBox;  //Skybox
 	private BasicMap terrainMap; //Map
 
@@ -104,7 +104,9 @@ public class MyGame extends VariableFrameRateGame
 	private PhysicsEngine physicsEng; 
 	private PhysicsObject ball1PhysObj, ball2PhysObj;
 	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj, npcKnightPhysObj;
+	private PhysicsObject npcPhysObj01, npcPhysObj02;
 	private double[] netPosTransform; 
+	private double[] targetBallPos; 
 	private boolean running = true;
 	private float ballAngle = 0.0f;
 	
@@ -121,6 +123,13 @@ public class MyGame extends VariableFrameRateGame
 	private Vector3f clientPos1 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, 3.0f); // Positioning. 
 	private Vector3f clientPos2 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, -3.0f);	
 	
+	// Game State Boolean Variables.
+	private boolean p1Serve = false; // For resetting ball position. 
+	private boolean p2Serve = false; 
+	private boolean sendBallMsgs = false; // Determines when to send ball position messages.
+	private boolean gameMultiplayerOnline = false; 
+	private String clientGhostName; 
+		
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
         super();
@@ -168,7 +177,7 @@ public class MyGame extends VariableFrameRateGame
     	boolean userConfirm = false; 
     	String command, givenIP = "10.0.0.246";
     	int    givenPort = 6020;
-    	String initalRequest = "Welcome to GL Sports Volleyball Game.";
+    	String initalRequest = "Welcome to Summer Time Volleyball.";
     	String requestIP = "Enter IP address. ";
     	String requestPort = "Enter Port Number. ";
     	String confirmInput = "", confirmRequest = "Enter (Y/N) to Confirm... ";
@@ -279,8 +288,11 @@ public class MyGame extends VariableFrameRateGame
     	statNetNode = sm.getRootSceneNode().createChildSceneNode("StaticNetNode");
     	statNetNode.setLocalPosition(0.0f, 2.0f, -2.0f);
     	
+    	// Gameplay related
+    	SceneNode targetPosNode = sm.getRootSceneNode().createChildSceneNode("TargetPosNode");
+    	
     	// Set Up Game Ball Object. 
-    	Entity sphereE = sm.createEntity("gameBall", "blender_gem01.obj"); // Was: "earth.obj"
+    	Entity sphereE = sm.createEntity("gameBall", "gameBall01.obj"); // Was: "earth.obj"
     	sphereE.setPrimitive(Primitive.TRIANGLES);
     	SceneNode sphereN = sm.getRootSceneNode().createChildSceneNode(sphereE.getName() + "Node");
     	sphereN.attachObject(sphereE);
@@ -374,6 +386,17 @@ public class MyGame extends VariableFrameRateGame
 		SceneNode plightNode = sm.getRootSceneNode().createChildSceneNode("plightNode");
         plightNode.attachObject(plight);
         plightNode.setLocalPosition(0.0f, 3.0f, -3.0f);
+        
+        // Set up Diffuse general Lighting. 
+		Light diffuseLight = sm.createLight("diffuseLamp1", Light.Type.DIRECTIONAL); // Was Point
+		diffuseLight.setAmbient(new Color(.1f, .1f, .1f));
+		diffuseLight.setDiffuse(new Color(.5f, .5f, .5f));
+		diffuseLight.setSpecular(new Color(0.8f, 0.8f, 0.8f));
+		diffuseLight.setRange(30.0f);
+		
+		SceneNode diffusLightN = sm.getRootSceneNode().createChildSceneNode("diffuseNode");
+		diffusLightN.attachObject(diffuseLight);
+		diffusLightN.setLocalPosition(-1.0f, 3.0f, 0.0f);
     }
 
     // SOUND SETUP Start
@@ -472,6 +495,10 @@ public class MyGame extends VariableFrameRateGame
 		 	    		moveLeftRightAction,
 		 	    		InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 	    	    im.associateAction(inputComponent,
+		 	    		net.java.games.input.Component.Identifier.Key.E,
+		 	    		moveFrontBackAction,
+		 	    		InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+	    	    im.associateAction(inputComponent,
 		 	    		net.java.games.input.Component.Identifier.Key.LEFT,
 		 	    		yawNodeAction,
 		 	    		InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
@@ -516,7 +543,7 @@ public class MyGame extends VariableFrameRateGame
 	    };
     }
 	
-	// Physics Code Logic Begin.
+	// ============== Physics Code Logic Begin. ===================
 	private void initPhysicsSystem()
 	{ 
 		String engine = "ray.physics.JBullet.JBulletPhysicsEngine";
@@ -542,9 +569,10 @@ public class MyGame extends VariableFrameRateGame
 	
 		// Set Up Game Ball Object. 
 		temptf = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
-		gameBallPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.6f);
+		targetBallPos = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
+		gameBallPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 1.0f);
 		gameBallPhysObj.setBounciness(1.3f);
-		gameBallPhysObj.setDamping(0.7f, 0.0f); 
+		gameBallPhysObj.setDamping(0.4f, 0.0f); 
 		gameBallN.scale(0.1f, 0.1f, 0.1f);
 		gameBallN.setPhysicsObject(gameBallPhysObj);
 		
@@ -593,6 +621,14 @@ public class MyGame extends VariableFrameRateGame
 		Matrix4 mat;
 		PhysicsObject currentPhysObj;
 		Angle angle = Degreef.createFrom(ballAngle);
+		SceneManager sm = getEngine().getSceneManager();
+		
+    	SceneNode targetPosNode = sm.getSceneNode("TargetPosNode");
+		SceneNode clientN = sm.getSceneNode("clientModelNode");
+		SceneNode gameBallN = sm.getSceneNode("gameBallNode");
+		SceneNode clientNPC;  
+		SceneNode clientGhostN; // Left intentionally blank. 
+		Vector3f givenPos; 
 		
 		if (running)
 		{ 
@@ -606,7 +642,7 @@ public class MyGame extends VariableFrameRateGame
 				{   
 					findCollisionPair(s); 
 					
-					if (s.getName().contains("client"))// || s.getName().contains("Net"))
+					if (s.getName().contains("client") || s.getName().contains("NPC"))// || s.getName().contains("Net"))
 					{
 						mat = s.getLocalTransform();
 						currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
@@ -614,6 +650,54 @@ public class MyGame extends VariableFrameRateGame
 					else if (s.getName().contains("Net"))
 					{
 						currentPhysObj.setTransform(netPosTransform); // Takes in: Double []
+					}
+					else if (s.getName().contains("Ball"))
+					{
+						System.out.println("p1Serve: " + p1Serve + ", p2Serve: " + p2Serve);
+						if (p1Serve || p2Serve)
+						{
+							// Change and maintain position for serve -> letting go atop their models. 
+							if (p1Serve)
+							{
+								// Set Ball Location above client/NPC.
+								givenPos = (Vector3f) clientN.getLocalPosition();
+								gameBallN.setLocalPosition(givenPos.x(), givenPos.y() + 1.0f, givenPos.z());
+								
+								// Set physics object to static position above the client model. 
+								mat = gameBallN.getLocalTransform();
+								currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
+								//p1Serve = false;
+							}
+							else if (p2Serve)
+							{
+								// Set Ball Location above client/NPC.
+								//p1Serve = false;
+								if (gameMultiplayerOnline) // Case of multiplayer management. 
+								{
+									// Get reference from protocol client. 
+									System.out.println("MULTIPLAYER -> GET P-Client Reference.");
+									// clientGhostN = getEngine().getSceneManager().getSceneNode(clientGhostName);
+								}
+								else // Case: single player -> NPC ball managment. 
+								{
+									clientNPC = sm.getSceneNode("NPC_0_Node");
+									givenPos = (Vector3f) clientNPC.getLocalPosition(); 
+									// Set Ball to position above the NPC, then let go. 
+									targetPosNode.setLocalPosition(givenPos.x(), givenPos.y() + 1.0f, givenPos.z());
+									
+									// Set physics object to static position above the client model. 
+									mat = targetPosNode.getLocalTransform();
+									currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
+									
+									p2Serve = false; // Set to fall on NPC for auto serve. 
+								}
+							}
+						}
+						else // Let physics control ball movement. 
+						{
+							mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
+							s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
+						}
 					}
 					else 
 					{
@@ -631,7 +715,7 @@ public class MyGame extends VariableFrameRateGame
 				} 
 			} 
 		}
-	} // Update Physics Function End. 
+	} // Update Physics End. 
 
 	
 	// Use current node to check all other Nodes that are higher than it on the X axis. 
@@ -776,7 +860,7 @@ public class MyGame extends VariableFrameRateGame
 	
 	public boolean getPhysicsRun()
 	{   return running;         }
-	// Physics End.
+	// ==================== Physics Function End. ===================
 
 	// Game Logic Goes here. 
     @Override
@@ -793,6 +877,7 @@ public class MyGame extends VariableFrameRateGame
 		counterStr = Integer.toString(counter);
 		
 		dispStr = "Time = " + elapsTimeStr + ".  Player 1 Score = " + p1Score;
+		dispStr += ". Player 2 Score = " + p2Score; 
 		rs.setHUD(dispStr, p1ViewX, p1ViewY); //rs.setHUD2(dispStr, 15, 15);
 		
 		// tell the input manager to process the inputs
@@ -808,19 +893,48 @@ public class MyGame extends VariableFrameRateGame
 
 		// updateAnimations(); // Updates Model Animations
 
+		updateGameworldPlay(); // Re-position ball to float 
+		
 		updateServerBallPosition(); // Sends the Server an update on ball position. 
 		
 		updateGameSounds(); 
 		System.out.println("End of Update Call. ");
 	}
     
-    // Goal to Manage Game Related Things: Scores, Ball Managemn
+    // Goal to Manage Game Related Things: Scores, Ball Management. 
+    // Single Player -> Maybe an indictor for it. 
     public void updateGameworldPlay()
     {
     	// The first client's ball location will be the one that is sent to all clients.
     	// This is to ensure a syrchonized game state. Can be improved toward complete server control.
     	
+    	SceneNode ballN = getEngine().getSceneManager().getSceneNode("gameBallNode");
+    	Vector3f ballLocation = (Vector3f) ballN.getLocalPosition(); 
+    	// 1. Check for ball location and winning of game point. 
+    	if (ballLocation.y() == 0)
+    	{
+    		// Reset ball location. 
+    		if (ballLocation.z() > 0.2f) // Scored on +Z axis side. Player 2
+    		{
+    			System.out.println("Ball Touched +Z Axis");
+        		p2Score += 1;  // Score point for p2 
+        		p1Serve = true;
+    			
+    		}
+    		else if (ballLocation.z() < -0.2f) // Scored on -Z axis side. Player 1
+    		{
+    			System.out.println("Ball Touched -Z Axis");
+        		p1Score += 1;  // Score point for p1 
+        		p2Serve = true;
+    		}
+    	}
     }
+    
+    // Boolean setter for what game environment is set. 
+ 	public void setClientGameStatus(boolean givenState)
+ 	{
+ 		gameMultiplayerOnline = givenState; 
+ 	}
 
 	// Updates the player's elapsed time rate for movement.
 	private void generateDeltaTime(float currentTime) 
@@ -1016,6 +1130,7 @@ public class MyGame extends VariableFrameRateGame
 			ghostE.setPrimitive(Primitive.TRIANGLES);
 			
 			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
+			clientGhostName = ghostN.getName();  // Record client ghost name. 
 			ghostN.attachObject(ghostE);
 			ghostN.setLocalPosition(avatar.obtainGhostPosition());
 			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
@@ -1092,15 +1207,27 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f pos = (Vector3f) newNPC.getPosition();
 		SceneManager sm = getEngine().getSceneManager();
 		
+		float mass = 1.0f;  // Physics Values. 
+		float up[] = {0,1,0};
+		double[] temptf;
+		
 		try 
 		{
 			Entity npcE = sm.createEntity("NPC_" + newNPC.obtainID(), "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
-	        npcE.setPrimitive(Primitive.TRIANGLES);
+	        npcE.setPrimitive(Primitive.TRIANGLES); // NPC_0_Node
 	        
 	        SceneNode npcNode = sm.getRootSceneNode().createChildSceneNode(npcE.getName() + "_Node");
 	        npcNode.setLocalPosition(pos.x(), pos.y()+1.0f, pos.z());
-	        npcNode.scale(0.10f, 0.10f, 0.10f);
+	        //npcNode.scale(0.10f, 0.10f, 0.10f);
 	        npcNode.attachObject(npcE);
+	        
+	        // Set up NPC physics Obj. -> npcPhysObj01, npcPhysObj02;
+	        temptf = toDoubleArray(npcNode.getLocalTransform().toFloatArray());
+	        npcPhysObj01 = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.4f); // 0.2f w sphere.
+	        npcPhysObj01.setBounciness(0.5f);
+	     
+	        npcNode.scale(0.10f, 0.10f, 0.10f);
+	        npcNode.setPhysicsObject(npcPhysObj01);
 		}
 		catch (IOException e) 
 		{   
@@ -1148,11 +1275,13 @@ public class MyGame extends VariableFrameRateGame
     	SceneNode ballNode = getEngine().getSceneManager().getSceneNode("gameBallNode");
 
 		Vector3f curPos = (Vector3f) ballNode.getLocalPosition(); 
-		
-		if (determineChangeVectors(curPos, ballPosition))
-		{ // If there is a change then update local ref and server. 
-			ballPosition = curPos; 
-			protClient.sendBallPositionToServer();
+		if (sendBallMsgs) // Will stop sending messages when NOT serving. 
+		{
+			if (determineChangeVectors(curPos, ballPosition))
+			{ // If there is a change then update local ref and server. 
+				ballPosition = curPos; 
+				protClient.sendBallPositionToServer();
+			}
 		}
 	}
 	
@@ -1176,9 +1305,12 @@ public class MyGame extends VariableFrameRateGame
 		// clientPos1/2.
     	SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode");
 		
-		if (serverClientCount == 1)
+		if (serverClientCount == 1) // First to connect to server. 
 		{
 			clientN.setLocalPosition(clientPos1.x(), clientPos1.y(), clientPos1.z());
+			// First to serve and set Ball movement msgs. 
+			sendBallMsgs = true; // Send ball movement locations
+			p1Serve = true;      // Set ball serve ready. 
 		}
 		else if (serverClientCount == 2)
 		{
@@ -1188,7 +1320,11 @@ public class MyGame extends VariableFrameRateGame
 		{
 			clientN.setLocalPosition(clientPos1.x(), clientPos1.y(), clientPos1.z());
 		}
-		
 	}
+	
+	// Made to be responsive to E keyboard command. 
+	// Made to serve ball in game. 
+	public void setP1ServeStatus(boolean givenState)
+	{   p1Serve = givenState;   }
 	
 }

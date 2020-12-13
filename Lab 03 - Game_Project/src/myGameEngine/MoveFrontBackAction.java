@@ -40,6 +40,9 @@ public class MoveFrontBackAction extends AbstractInputAction
 		
 		float deltaRate = time - givenTime; // Used to manage consistent elapsed time movement.
 		float deltaPos = deltaRate * 0.5f;  // Movement change
+		
+		if (charCommand == 'E')
+		{   localGame.setP1ServeStatus(false);   }
 	
 		if ((charCommand == 'W') || (charCommand == 'S')) // determine if command came from keyboard.
 		{

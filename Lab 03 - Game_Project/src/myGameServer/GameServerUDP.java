@@ -62,13 +62,13 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					if (validateClient(senderIP))
 					{
 						addClient(ci, clientID);           // Add Client
+						recordJoinedClient(clientID.toString(), senderIP.toString());  // Record newly joined Client.
 						sendJoinedMessage(clientID, true); // Send Response that connection true.
 						if (gameBallPosition == null)
 						{
 							sendBallPositionRequest(clientID);      // If no record of ball location, send request for it. 
 						}
 													
-						recordJoinedClient(clientID.toString(), senderIP.toString());  // Record newly joined Client.
 					}
 					else
 					{   System.out.println("Client IP Address is already in Use.");   }
@@ -242,6 +242,7 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			{  message += "failure";  }
 			
 			message += ("," + clientAmount);
+			System.out.println("Client Amount info: " + message); 
 			sendPacket(message, clientID);
 		}
 		catch (IOException e) 
