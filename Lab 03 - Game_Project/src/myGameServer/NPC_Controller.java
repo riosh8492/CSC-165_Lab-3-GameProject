@@ -117,7 +117,7 @@ public class NPC_Controller extends Thread
 	public void followTargetAction(Vector3f ballPos) 
 	{
 		int i;
-		float moveDelta = 0.0f; 
+		float delta = 0.2f, moveDelta = 0.0f; 
 		NPC npc;
 		
 		for (i = 0; i < amountNPCs; i++)
@@ -128,7 +128,7 @@ public class NPC_Controller extends Thread
 				// Update position if not equal x axis position.
 				if (npc.getX() != ballPos.x())
 				{
-					moveDelta = (npc.getX() > ballPos.x()) ? -0.2f : 0.2f;
+					moveDelta = (npc.getX() > ballPos.x()) ? -delta : delta;
 					moveDelta = (ballPos.x() == 0.0f) ? 0.0f : moveDelta; 
 					
 					npc.updateLocation(npc.getX() + moveDelta, npc.getY(), npc.getZ());

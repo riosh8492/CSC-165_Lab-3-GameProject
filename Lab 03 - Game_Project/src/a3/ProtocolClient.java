@@ -27,6 +27,7 @@ public class ProtocolClient extends GameConnectionClient
 	private GhostAvatar ghostHolder; 
 	private int gAvatarID;
 	private Vector3f gAvatarPosition; 
+	private Vector3f ballPosRef; // Holder for the position of the ball. 
 	
 	private ArrayList<GhostNPC> ghostNPCs = new ArrayList<GhostNPC>(10); // NPC/AI Variables. 
 	
@@ -420,7 +421,8 @@ public class ProtocolClient extends GameConnectionClient
 	public void sendBallPositionToServer() 
 	{
 		String msg;
-		Vector3f ballPos = game.obtainBallLocation(); 
+		Vector3f ballPos = game.obtainBallLocation();
+		ballPosRef = ballPos; // Keep an updated version of ball position. 
 		try
 		{ 
 			msg = new String("detailsForBall");

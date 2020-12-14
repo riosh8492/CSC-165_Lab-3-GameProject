@@ -1,0 +1,14 @@
+# Blender MTL File: 'gameBall01.blend'
+# Material Count: 1
+
+newmtl Game_Ball
+Ns 70.000000
+Ka 0.400000 0.400000 0.400000
+Kd 0.700000 0.700000 0.700000
+Ks 0.900000 0.900000 0.900000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+# texture
+map_Kd gameBall01_UV_Texture.png

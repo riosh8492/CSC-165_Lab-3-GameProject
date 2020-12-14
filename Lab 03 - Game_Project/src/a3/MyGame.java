@@ -129,7 +129,10 @@ public class MyGame extends VariableFrameRateGame
 	private boolean sendBallMsgs = false; // Determines when to send ball position messages.
 	private boolean gameMultiplayerOnline = false; 
 	private String clientGhostName; 
-		
+	
+	//private Vector3f clientPos, ghostNPC1, ghostNPC2, ghostClient; //  
+	private Vector3f prevBallPos; 
+	
     public MyGame(String serverAddr, int sPort, String placeHolder)
     {
         super();
@@ -682,11 +685,10 @@ public class MyGame extends VariableFrameRateGame
 								{
 									clientNPC = sm.getSceneNode("NPC_0_Node");
 									givenPos = (Vector3f) clientNPC.getLocalPosition(); 
-									// Set Ball to position above the NPC, then let go. 
-									targetPosNode.setLocalPosition(givenPos.x(), givenPos.y() + 1.0f, givenPos.z());
+									gameBallN.setLocalPosition(givenPos.x(), givenPos.y() + 2.2f, givenPos.z());
 									
-									// Set physics object to static position above the client model. 
-									mat = targetPosNode.getLocalTransform();
+									// Set Ball to position above the NPC, then let go. 
+									mat = gameBallN.getLocalTransform();
 									currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
 									
 									p2Serve = false; // Set to fall on NPC for auto serve. 
@@ -696,6 +698,9 @@ public class MyGame extends VariableFrameRateGame
 						else // Let physics control ball movement. 
 						{
 							mat = Matrix4f.createFrom(toFloatArray(currentPhysObj.getTransform()));
+							
+							s.setLocalRotation(mat.toMatrix3()); // Hopefully transfers phys rotation to model. 
+							
 							s.setLocalPosition(mat.value(0,3), mat.value(1,3), mat.value(2,3));
 						}
 					}
@@ -755,12 +760,7 @@ public class MyGame extends VariableFrameRateGame
 	private void handlePossibleCollision(SceneNode initialObj, SceneNode tempObj) 
 	{
 		float bounds = 0.3f; 
-		SceneNode obj1 = collisionRecord.get(0);
-		SceneNode obj2 = collisionRecord.get(1);
-		
-		PhysicsObject objPhys1 = initialObj.getPhysicsObject(); 
-		PhysicsObject objPhys2 = tempObj.getPhysicsObject();
-		
+
 		float curYPos = initialObj.getLocalPosition().y();
 		float tempYPos = tempObj.getLocalPosition().y();
 		
@@ -784,15 +784,13 @@ public class MyGame extends VariableFrameRateGame
 					if (initialObj.getName().contains("Ball"))
 					{   
 						//System.out.println("Ball encountered.");
-						//objPhys1.applyTorque(1.0f, 0.0f, 0.0f);
-						movePhysicsBall(initialObj); 
+						movePhysicsBall(initialObj, tempObj); 
 						ballAngle = 1.0f;
 					}
 					else if (tempObj.getName().contains("Ball"))
 					{   
 						//System.out.println("Ball encountered.");
-						//objPhys2.applyTorque(1.0f, 0.0f, 0.0f); 
-						movePhysicsBall(tempObj);
+						movePhysicsBall(tempObj, initialObj);
 						ballAngle = 1.5f;
 					}
 				}
@@ -803,30 +801,26 @@ public class MyGame extends VariableFrameRateGame
 	
 	// Serves to make physics ball move at an angle for that game.
 	// Basically, for now: when model hits ball, push it at an angle. 
-	public void movePhysicsBall(SceneNode givenBall)
+	public void movePhysicsBall(SceneNode givenBall, SceneNode modelNode)
 	{
 		Vector3f ballPos = (Vector3f) givenBall.getLocalPosition();
+		Vector3f modelFwd = (Vector3f) modelNode.getLocalForwardAxis(); 
 		PhysicsObject physBall = givenBall.getPhysicsObject(); 
-		
+
 		float forceAmt = 4.0f; 
-		float forceFloat  [] = new float [] {0.0f, 4.5f, -forceAmt}; 
-		float forceFloat2 [] = new float [] {0.0f, 4.5f, forceAmt}; 
+		float forceDir = (modelFwd.x() > 0.1f) ? 2.0f : 0.0f; 
+			  forceDir = (modelFwd.x() < -0.1f) ? -2.0f : 0.0f; 
+			  
+		float forceFloat  [] = new float [] {forceDir, 4.5f, -forceAmt}; 
+		float forceFloat2 [] = new float [] {forceDir, 4.5f, forceAmt}; 
 		
 		//physBall.setAngularVelocity(stopMotion); // Stop ball movement, and shoot ball. 
 		//physBall.setLinearVelocity(stopMotion);
-		
+	
 		if (ballPos.z() > 0.1f)       // On the +Z Axis side of the net. 
-		{
-			//physBall.applyForce(0.0f, forceAmt, -forceAmt, 
-			//		ballPos.x(), ballPos.y(), ballPos.z());
-			physBall.setLinearVelocity(forceFloat);
-		}
+		{   physBall.setLinearVelocity(forceFloat);    }
 		else if (ballPos.z() < -0.1f) // On the -Z Axis side of the net.
-		{
-			//physBall.applyForce(0.0f, forceAmt, forceAmt, 
-			//		ballPos.x(), ballPos.y(), ballPos.z());
-			physBall.setLinearVelocity(forceFloat2);
-		}
+		{   physBall.setLinearVelocity(forceFloat2);   }
 	}
 
 	// Physics Utility Functions
@@ -860,7 +854,7 @@ public class MyGame extends VariableFrameRateGame
 	
 	public boolean getPhysicsRun()
 	{   return running;         }
-	// ==================== Physics Function End. ===================
+	// ==================== Physics Functions End. ===================
 
 	// Game Logic Goes here. 
     @Override
@@ -893,12 +887,12 @@ public class MyGame extends VariableFrameRateGame
 
 		// updateAnimations(); // Updates Model Animations
 
-		updateGameworldPlay(); // Re-position ball to float 
+		updateGameworldPlay();      // Re-position ball to float 
 		
 		updateServerBallPosition(); // Sends the Server an update on ball position. 
 		
 		updateGameSounds(); 
-		System.out.println("End of Update Call. ");
+		System.out.println("Update Function Call Finished. ===== ");
 	}
     
     // Goal to Manage Game Related Things: Scores, Ball Management. 
@@ -910,27 +904,32 @@ public class MyGame extends VariableFrameRateGame
     	
     	SceneNode ballN = getEngine().getSceneManager().getSceneNode("gameBallNode");
     	Vector3f ballLocation = (Vector3f) ballN.getLocalPosition(); 
+    	float ballGrdBounds = ballLocation.y() - 0.7f; 
+    	
+    	//System.out.println("Ball Node Loc: x: " + ballLocation.x() + ", y: " + ballLocation.y() + ", z: " + ballLocation.z());
+    	
     	// 1. Check for ball location and winning of game point. 
-    	if (ballLocation.y() == 0)
+    	if (ballGrdBounds <= 0.0f) // UPdate this. 
     	{
     		// Reset ball location. 
-    		if (ballLocation.z() > 0.2f) // Scored on +Z axis side. Player 2
+    		if (ballLocation.z() > 0.2f) // Scored on +Z axis side. Serve goes to Player 1
     		{
-    			System.out.println("Ball Touched +Z Axis");
+    			//System.out.println("Ball Touched +Z Axis");
         		p2Score += 1;  // Score point for p2 
         		p1Serve = true;
+        		// Perhaps set sentMsgs to False.
     			
     		}
-    		else if (ballLocation.z() < -0.2f) // Scored on -Z axis side. Player 1
+    		else if (ballLocation.z() < -0.2f) // Scored on -Z axis side. Serve goes to Player 1
     		{
-    			System.out.println("Ball Touched -Z Axis");
+    			//System.out.println("Ball Touched -Z Axis");
         		p1Score += 1;  // Score point for p1 
         		p2Serve = true;
     		}
     	}
     }
-    
-    // Boolean setter for what game environment is set. 
+
+	// Boolean setter for what game environment is set. 
  	public void setClientGameStatus(boolean givenState)
  	{
  		gameMultiplayerOnline = givenState; 
@@ -1117,8 +1116,6 @@ public class MyGame extends VariableFrameRateGame
 		}
 	}
 	
-	
-	
 	// Add Ghost avatar to client game-world. parameters contain unique ghost ID, and position. 
 	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
 	{ 
@@ -1275,14 +1272,36 @@ public class MyGame extends VariableFrameRateGame
     	SceneNode ballNode = getEngine().getSceneManager().getSceneNode("gameBallNode");
 
 		Vector3f curPos = (Vector3f) ballNode.getLocalPosition(); 
+		
+		if (determineChangeVectors(curPos, ballPosition)) // Determine direction ball is moving to rotate in. 
+		{
+			setBallRotation(curPos, ballPosition);        // Rotates the ball in the direction its heading it. 
+		}
+		
 		if (sendBallMsgs) // Will stop sending messages when NOT serving. 
 		{
 			if (determineChangeVectors(curPos, ballPosition))
-			{ // If there is a change then update local ref and server. 
+			{   // If there is a change then update local ref and server. 
 				ballPosition = curPos; 
 				protClient.sendBallPositionToServer();
 			}
 		}
+		
+	}
+	
+	// Rotates the ball based on its change in location & Forward direction of client.  
+    public void setBallRotation(Vector3f currentPos, Vector3f prevPos) 
+    {
+    	SceneNode ballNode = getEngine().getSceneManager().getSceneNode("gameBallNode");
+    	PhysicsObject ballPhys = ballNode.getPhysicsObject();
+    	
+    	// System.out.println("Applying Torque to Ball Physics Obj.");
+    	float delta = 0.5f; 
+    	float xForce = 0.0f, yForce = 0.0f, zForce = 0.0f; 
+    	
+    	xForce += (currentPos.z() > prevPos.z()) ? -delta : delta;
+    	
+    	ballPhys.applyTorque(xForce, yForce, zForce);
 	}
 	
 	// Determines if there was a change in ball position. 
