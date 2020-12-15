@@ -68,6 +68,10 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 						{
 							sendBallPositionRequest(clientID);      // If no record of ball location, send request for it. 
 						}
+						else // Send initial ball position. 
+						{
+							sendPlayer2BallPos(clientID); 
+						}
 													
 					}
 					else
@@ -135,11 +139,15 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			// Ball Position handling.
 			if (msgTokens[0].compareTo("detailsForBall") == 0)
 			{
+				UUID senderID = UUID.fromString(msgTokens[1]);
+				
 				Vector3f ballPos = (Vector3f) Vector3f.createFrom(
-						 Float.parseFloat(msgTokens[1]),
 						 Float.parseFloat(msgTokens[2]),
-						 Float.parseFloat(msgTokens[3]));
+						 Float.parseFloat(msgTokens[3]),
+						 Float.parseFloat(msgTokens[4]));
+				
 				gameBallPosition = ballPos; // Record Ball Position instance. 
+				sendBallPositionUpdate(senderID);
 			}
 			// Additional cases for receiving messages about NPCs, such as:
 			if(msgTokens[0].compareTo("needNPC") == 0)
@@ -162,8 +170,46 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 				// If needed. NPC collides with ball? 
 			}
 		}
-	} // Function end. 
+	} // PACKET Func. end. 
 	
+	// Send P2 current ball position. 
+	private void sendPlayer2BallPos(UUID clientID) 
+	{
+		String msg;
+		Vector3f givenPos = gameBallPosition; 
+		
+		try
+	    {    
+			msg = "ballPos_p2";//"detailsForBall"; 
+			msg += "," + givenPos.x();
+			msg += "," + givenPos.y();
+			msg += "," + givenPos.z();
+			
+			sendPacket(msg, clientID);
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   }
+	}
+
+	private void sendBallPositionUpdate(UUID senderID) 
+	{
+		// send gameBallPosition to all clients. 
+		Vector3f givenPos = gameBallPosition; 
+		
+		try
+		{
+			String msg = new String("b_update");
+			msg += "," + givenPos.x();
+			msg += "," + givenPos.y();
+			msg += "," + givenPos.z();
+			
+			forwardPacketToAll(msg, senderID); // Send packet to all but sender. 
+		}
+		catch (IOException e) 
+		{   e.printStackTrace();   }
+
+	}
+
 	// Meant to be called when first client is created. 
 	private void sendBallPositionRequest(UUID clientID) 
 	{

@@ -42,7 +42,10 @@ public class MoveFrontBackAction extends AbstractInputAction
 		float deltaPos = deltaRate * 0.5f;  // Movement change
 		
 		if (charCommand == 'E')
-		{   localGame.setP1ServeStatus(false);   }
+		{   
+			localGame.setP1ServeStatus(false);
+			localGame.setP2ServeStatus(false);
+		}
 	
 		if ((charCommand == 'W') || (charCommand == 'S')) // determine if command came from keyboard.
 		{

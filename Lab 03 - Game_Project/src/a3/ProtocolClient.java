@@ -90,7 +90,7 @@ public class ProtocolClient extends GameConnectionClient
 						Float.parseFloat(msgTokens[4]));
 				
 					createGhostAvatar(ghostID, ghostPosition);
-					game.setClientGameStatus(true); // This notifies client that game is multiplayer. 
+					// game.setClientGameStatus(true); // This notifies client that game is multiplayer. 
 				}
 			}
 			// Informs client that a remote client wants a local status update
@@ -168,6 +168,23 @@ public class ProtocolClient extends GameConnectionClient
 						Float.parseFloat(msgTokens[3]),
 						Float.parseFloat(msgTokens[4]));
 				updateGhostNPC(npcGhostID, updateGhostPos);
+			} 
+			// Meant for Updating BALL movement. 
+			if(msgTokens[0].compareTo("b_update") == 0)
+			{ 
+				Vector3 updateBallPos = Vector3f.createFrom(
+						Float.parseFloat(msgTokens[1]),
+						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[3]));
+				ballPosRef = (Vector3f) updateBallPos; // Update reference. 
+			} 
+			if(msgTokens[0].compareTo("ballPos_p2") == 0)
+			{ 
+				Vector3 updateBallPos = Vector3f.createFrom(
+						Float.parseFloat(msgTokens[1]),
+						Float.parseFloat(msgTokens[2]),
+						Float.parseFloat(msgTokens[3]));
+				ballPosRef = (Vector3f) updateBallPos; // Update reference. 
 			}
 		}
 	}
@@ -416,7 +433,7 @@ public class ProtocolClient extends GameConnectionClient
 			e.printStackTrace();
 		} 
 	}
-	
+
 	// Send ball location to the server. 
 	public void sendBallPositionToServer() 
 	{
@@ -426,6 +443,7 @@ public class ProtocolClient extends GameConnectionClient
 		try
 		{ 
 			msg = new String("detailsForBall");
+			msg += "," + id.toString(); 
 			msg += "," + ballPos.x()+"," + ballPos.y() + "," + ballPos.z();
 			sendPacket(msg);
 		}
@@ -435,4 +453,10 @@ public class ProtocolClient extends GameConnectionClient
 	
 	public UUID obtainClientID()
 	{   return id;   }
+
+	public Vector3f getSyncBallPos() 
+	{
+		// Get protocol client's ball pos. 
+		return ballPosRef;
+	}
 }

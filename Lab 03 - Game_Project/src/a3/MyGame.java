@@ -657,21 +657,36 @@ public class MyGame extends VariableFrameRateGame
 					else if (s.getName().contains("Ball"))
 					{
 						System.out.println("p1Serve: " + p1Serve + ", p2Serve: " + p2Serve);
+						System.out.println("*** sendBallMsgs: " + sendBallMsgs);
 						if (p1Serve || p2Serve)
 						{
 							// Change and maintain position for serve -> letting go atop their models. 
 							if (p1Serve)
 							{
-								// Set Ball Location above client/NPC.
-								givenPos = (Vector3f) clientN.getLocalPosition();
-								gameBallN.setLocalPosition(givenPos.x(), givenPos.y() + 1.0f, givenPos.z());
-								
-								// Set physics object to static position above the client model. 
-								mat = gameBallN.getLocalTransform();
-								currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
-								//p1Serve = false;
+								if (gameMultiplayerOnline) // Multiplayer. 
+								{
+									// Set Ball Location above client/NPC.
+									givenPos = (Vector3f) clientN.getLocalPosition();
+									gameBallN.setLocalPosition(givenPos.x(), givenPos.y() + 1.0f, givenPos.z());
+									
+									// Set physics object to static position above the client model. 
+									mat = gameBallN.getLocalTransform();
+									currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
+									//p1Serve = false;
+								}
+								else // Single Player. 
+								{
+									// Set Ball Location above client/NPC.
+									givenPos = (Vector3f) clientN.getLocalPosition();
+									gameBallN.setLocalPosition(givenPos.x(), givenPos.y() + 1.0f, givenPos.z());
+									
+									// Set physics object to static position above the client model. 
+									mat = gameBallN.getLocalTransform();
+									currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
+									//p1Serve = false;
+								}
 							}
-							else if (p2Serve)
+							else if (p2Serve) // 
 							{
 								// Set Ball Location above client/NPC.
 								//p1Serve = false;
@@ -680,6 +695,15 @@ public class MyGame extends VariableFrameRateGame
 									// Get reference from protocol client. 
 									System.out.println("MULTIPLAYER -> GET P-Client Reference.");
 									// clientGhostN = getEngine().getSceneManager().getSceneNode(clientGhostName);
+									givenPos = protClient.getSyncBallPos(); 
+									System.out.println("ProtClient given Position: ");
+									System.out.println("----> X: " + givenPos.x() +", Y: "+ givenPos.y() + ", Z: " + givenPos.z());
+									
+									gameBallN.setLocalPosition(givenPos.x(), givenPos.y(), givenPos.z());
+									
+									// Set Ball to position above the NPC, then let go. 
+									mat = gameBallN.getLocalTransform();
+									currentPhysObj.setTransform(toDoubleArray(mat.toFloatArray())); // Takes in: Double []
 								}
 								else // Case: single player -> NPC ball managment. 
 								{
@@ -874,6 +898,8 @@ public class MyGame extends VariableFrameRateGame
 		dispStr += ". Player 2 Score = " + p2Score; 
 		rs.setHUD(dispStr, p1ViewX, p1ViewY); //rs.setHUD2(dispStr, 15, 15);
 		
+		System.out.println("[ Time Passed ] : " + elapsTimeStr);
+		
 		// tell the input manager to process the inputs
 		im.update(elapsTime);
 				
@@ -904,9 +930,11 @@ public class MyGame extends VariableFrameRateGame
     	
     	SceneNode ballN = getEngine().getSceneManager().getSceneNode("gameBallNode");
     	Vector3f ballLocation = (Vector3f) ballN.getLocalPosition(); 
-    	float ballGrdBounds = ballLocation.y() - 0.7f; 
+    	float ballGrdBounds = ballLocation.y() - 0.8f; 
     	
-    	//System.out.println("Ball Node Loc: x: " + ballLocation.x() + ", y: " + ballLocation.y() + ", z: " + ballLocation.z());
+    	System.out.println("Ball Node Loc: x: " + ballLocation.x() + ", y: " + ballLocation.y() + ", z: " + ballLocation.z());
+    	System.out.println("*** ballGrd Bounds: " + ballGrdBounds);
+    	System.out.println("gameMultiplayerOnline: " + gameMultiplayerOnline);
     	
     	// 1. Check for ball location and winning of game point. 
     	if (ballGrdBounds <= 0.0f) // UPdate this. 
@@ -914,20 +942,95 @@ public class MyGame extends VariableFrameRateGame
     		// Reset ball location. 
     		if (ballLocation.z() > 0.2f) // Scored on +Z axis side. Serve goes to Player 1
     		{
-    			//System.out.println("Ball Touched +Z Axis");
-        		p2Score += 1;  // Score point for p2 
-        		p1Serve = true;
-        		// Perhaps set sentMsgs to False.
-    			
+    			System.out.println("Ball Touched +Z Axis");
+        		
+        		if (gameMultiplayerOnline == true)
+        		{
+            		maintainClientGameServe(true); // Maintains game play key features. 
+        		}
+        		else
+        		{
+            		p2Score += 1;  // Score point for p2 
+            		p1Serve = true;
+             		sendBallMsgs = true; // was false.  
+        		}
     		}
-    		else if (ballLocation.z() < -0.2f) // Scored on -Z axis side. Serve goes to Player 1
+    		else if (ballLocation.z() < -0.2f) // Scored on -Z axis side. Serve goes to Player 2
     		{
-    			//System.out.println("Ball Touched -Z Axis");
-        		p1Score += 1;  // Score point for p1 
-        		p2Serve = true;
+    			System.out.println("Ball Touched -Z Axis");
+    			System.out.println("Player 2 info: gameMultiplayerOnline: " + gameMultiplayerOnline);
+    			
+        		if (gameMultiplayerOnline == true)
+        		{
+            		maintainClientGameServe(false); // Maintains game play key features. 
+        		}
+        		else // Single Player
+        		{
+            		p1Score += 1;  // Score point for p1 
+            		p2Serve = true;
+            		sendBallMsgs = false; 
+        		}
     		}
     	}
+    	else
+    	{
+    		//System.out.println("Ball Not touching ground ..."); 
+    	}
     }
+
+    // Check where the client is, and determine Serve status based on which client. 
+	public void maintainClientGameServe(boolean side) 
+	{
+		// Determine if this is player 1 or 2.
+		// TRUE: ball landed on p1 side, FALSE: ball landed on p2 side. 
+		SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode");
+    	Vector3f clientPos = (Vector3f) clientN.getLocalPosition(); 
+    	boolean player2 = (clientPos.z() < 0.0f) ? true : false; 
+    	
+    	System.out.println("MULTIPLAYER SERVE CHECK -> PLAYER 1/2? ***************************"); 
+    	System.out.println("clientPOS: Z: " + clientPos.z()); 
+    	
+    	if (player2) // Client on -Z axis -> They are player 2.
+    	{
+        	System.out.println("PLAYER 2?"); 
+        	
+        	if (side) // True -> ball landed on p1 side. 
+        	{
+        		p1Score += 1;  // Score point for p2
+        		p1Serve = false;
+        		p2Serve = true;
+        		
+        		updateServerBallPosition();  // Send one last ball update to server. 
+        		sendBallMsgs = false;
+        	}
+        	else     // False -> ball landed on p2 side.
+        	{
+        		p2Score += 1;  // Score point for p1 
+        		p1Serve = true;
+        		p2Serve = false;
+        		sendBallMsgs = true; // Send out ball loc msgs
+        	}
+    	}
+    	else // They are Player 1.
+    	{
+    		if (side) // True -> ball landed on p1 side. 
+        	{
+        		p2Score += 1;  // Score point for p1 
+        		p1Serve = true;
+        		p2Serve = false;
+        		sendBallMsgs = true;
+        	}
+        	else     // False -> ball landed on p2 side.
+        	{
+        		p1Score += 1;  // Score point for p1 
+        		p1Serve = false;
+        		p2Serve = true;
+        		
+        		updateServerBallPosition();  // Send one last ball update to server. 
+        		sendBallMsgs = false; // Send out ball loc msgs
+        	}
+    	}
+	}
 
 	// Boolean setter for what game environment is set. 
  	public void setClientGameStatus(boolean givenState)
@@ -1023,6 +1126,7 @@ public class MyGame extends VariableFrameRateGame
 	{
 		// Info returned from the UDP Client manager.
 		isClientConnected = connectStatus;
+		//gameMultiplayerOnline = connectStatus; 
 	}
 
 	// * Assuming we are making a one view person game with networking, 
@@ -1123,24 +1227,29 @@ public class MyGame extends VariableFrameRateGame
 
 		if (avatar != null)
 		{ 
-			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "MayaKnight-Blender.obj");
+			gameMultiplayerOnline = true;
+			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "racoonModel.obj");
 			ghostE.setPrimitive(Primitive.TRIANGLES);
 			
-			SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
+			//SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
+			//ghostN.attachObject(ghostE);
+			
+			
+	        // Set client Node
+	        SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node"); // clientModelNode
 			clientGhostName = ghostN.getName();  // Record client ghost name. 
-			ghostN.attachObject(ghostE);
+
+			//ghostN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+			//ghostN.setLocalPosition(0.0f, 0.5f, 3.0f);
+	        ghostN.scale(0.3f, 0.3f, 0.3f);
+			ghostN.attachObject(ghostE); // */ 
+			// ========
+			
 			ghostN.setLocalPosition(avatar.obtainGhostPosition());
 			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
 			avatar.setGhostNode(ghostN);
 			avatar.setGhostEntity(ghostE);
-			
-			TextureManager tm = getEngine().getTextureManager();
-	        Texture mainTexture = tm.getAssetByPath("blender_MKnight_UV_texture.png"); // CubModelUV.png - Dolphin_HighPolyUV.png
-	        RenderSystem rs = sm.getRenderSystem();
-	        TextureState state = (TextureState) 
-	        		rs.createRenderState(RenderState.Type.TEXTURE);
-	        state.setTexture(mainTexture);
-	        ghostE.setRenderState(state);
 	        
 			System.out.println("LocalGame -> Ghost Creation Name: " + ghostN.getName());
 		} 
@@ -1326,14 +1435,21 @@ public class MyGame extends VariableFrameRateGame
 		
 		if (serverClientCount == 1) // First to connect to server. 
 		{
+			System.out.println("ADDED ONE CLIENT. THIS IS PLAYER 1");
 			clientN.setLocalPosition(clientPos1.x(), clientPos1.y(), clientPos1.z());
 			// First to serve and set Ball movement msgs. 
 			sendBallMsgs = true; // Send ball movement locations
 			p1Serve = true;      // Set ball serve ready. 
+			p2Serve = false; 
 		}
 		else if (serverClientCount == 2)
 		{
+			System.out.println("ADDED SECOND CLIENT. THIS IS PLAYER 2");
+
 			clientN.setLocalPosition(clientPos2.x(), clientPos2.y(), clientPos2.z());
+			p2Serve = true;      // Set ball serve ready. 
+			sendBallMsgs = false; 
+			gameMultiplayerOnline = true;  
 		}
 		else 
 		{
@@ -1345,5 +1461,7 @@ public class MyGame extends VariableFrameRateGame
 	// Made to serve ball in game. 
 	public void setP1ServeStatus(boolean givenState)
 	{   p1Serve = givenState;   }
+	public void setP2ServeStatus(boolean givenState)
+	{   p2Serve = givenState;   }
 	
 }
