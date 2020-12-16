@@ -1249,6 +1249,7 @@ public class MyGame extends VariableFrameRateGame // Ship to School Comp.
 		SceneNode modSkeletonN = sm.getRootSceneNode().createChildSceneNode(mainName + "Node");
 		modSkeletonN.attachObject(mSkeletonE);
 		modSkeletonN.setLocalPosition(0.0f, 0.5f, 2.5f);
+		modSkeletonN.scale(1.3f, 1.3f, 1.3f);
 	}
 
 	// Put Animations to be updated constantly in this function
