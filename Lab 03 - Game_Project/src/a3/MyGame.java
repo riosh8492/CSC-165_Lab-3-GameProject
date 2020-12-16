@@ -50,7 +50,7 @@ import ray.physics.PhysicsEngineFactory;
 import ray.audio.*;
 // import com.jogamp.openal.ALFactory;
 
-public class MyGame extends VariableFrameRateGame
+public class MyGame extends VariableFrameRateGame // Ship to School Comp. 
 {
 	// to minimize variable allocation in update()
 	GL4RenderSystem rs; //
@@ -104,7 +104,7 @@ public class MyGame extends VariableFrameRateGame
 	private PhysicsEngine physicsEng; 
 	private PhysicsObject ball1PhysObj, ball2PhysObj;
 	private PhysicsObject gndPlaneP, gameBallPhysObj, clientPhysObj, courtNetPhysObj, npcKnightPhysObj;
-	private PhysicsObject npcPhysObj01, npcPhysObj02;
+	private PhysicsObject npcPhysObj01, npcPhysObj02, clientGhostObj;
 	private double[] netPosTransform; 
 	private double[] targetBallPos; 
 	private boolean running = true;
@@ -120,8 +120,8 @@ public class MyGame extends VariableFrameRateGame
 	private boolean originBallSender = true; // Networking related. 
 	
 	private boolean playerStatus = false;
-	private Vector3f clientPos1 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, 3.0f); // Positioning. 
-	private Vector3f clientPos2 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, -3.0f);	
+	private Vector3f clientPos1 = (Vector3f) Vector3f.createFrom(0.0f, 0.8f, 3.0f); // Positioning. 
+	private Vector3f clientPos2 = (Vector3f) Vector3f.createFrom(0.0f, 0.8f, -3.0f);	
 	
 	// Game State Boolean Variables.
 	private boolean p1Serve = false; // For resetting ball position. 
@@ -328,21 +328,11 @@ public class MyGame extends VariableFrameRateGame
         courtNetN.attachObject(courtNetE);
         // End of Set up Net Object. -----------------
         
-        // Set Up other NPC Model Obj 1 -------------
-        //Entity knightE = sm.createEntity("npc_knight", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
-        //knightE.setPrimitive(Primitive.TRIANGLES);
-        
-        //SceneNode knightN = sm.getRootSceneNode().createChildSceneNode(knightE.getName() + "Node");
-        //knightN.setLocalPosition(3.0f, 1.0f, -1.0f);
-        //knightN.scale(2.0f, 2.0f, 2.0f);
-        //knightN.attachObject(knightE);
-        // Set Up other NPC Model Obj 1 -----End-----
-        
         // Set Up Model & Texture for Player 1 ---
         // Create Model Object with Animations/Skeleton/Mesh
-        // initalizeTestModel("clientModel");
+        initalizeTestModel("clientModel");
         
-        //* Block out this set up to then use animated model in inititalizeModel. 
+        /* Block out this set up to then use animated model in inititalizeModel. 
 		Entity clientE = sm.createEntity("clientModel", "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
 		clientE.setPrimitive(Primitive.TRIANGLES);
         
@@ -996,7 +986,7 @@ public class MyGame extends VariableFrameRateGame
 
 		updatePhysicsWorld(elapsTime); // Updates the Physics World. 
 
-		// updateAnimations(); // Updates Model Animations
+		updateAnimations(); // Updates Model Animations
 
 		updateGameworldPlay();      // Re-position ball to float 
 		
@@ -1309,7 +1299,10 @@ public class MyGame extends VariableFrameRateGame
 	public void addGhostAvatarToGameWorld(GhostAvatar avatar) throws IOException
 	{ 
     	SceneManager sm = getEngine().getSceneManager();
-
+    	float mass = 1.0f;  // Physics Values. 
+		float up[] = {0,1,0};
+		double[] temptf;
+    	
 		if (avatar != null)
 		{ 
 			gameMultiplayerOnline = true;
@@ -1326,7 +1319,6 @@ public class MyGame extends VariableFrameRateGame
 			//ghostN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
 			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
 			ghostN.setLocalPosition(0.0f, 0.5f, 3.0f);
-	        ghostN.scale(0.1f, 0.1f, 0.1f);
 			ghostN.attachObject(ghostE); // */ 
 			// ========
 			
@@ -1334,6 +1326,14 @@ public class MyGame extends VariableFrameRateGame
 			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
 			avatar.setGhostNode(ghostN);
 			avatar.setGhostEntity(ghostE);
+			
+			temptf = toDoubleArray(ghostN.getLocalTransform().toFloatArray());
+			clientGhostObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.4f); // 0.2f w sphere.
+			clientGhostObj.setBounciness(0.5f);
+	        ghostN.scale(0.1f, 0.1f, 0.1f);
+
+	        // npcNode.scale(0.30f, 0.30f, 0.30f);
+			ghostN.setPhysicsObject(clientGhostObj);
 	        
 			System.out.println("LocalGame -> Ghost Creation Name: " + ghostN.getName());
 		} 

@@ -100,7 +100,7 @@ public class MovePitchAction extends AbstractInputAction{
 		{
 			//this.nodeModeAction(time2/1000.0f, e);
 			
-			/*/ If animation not already playing, play the animation. 
+			// If animation not already playing, play the animation. 
 			if (localGame.getHandsUpAnimationStatus() == false)
 			{
 				localGame.setHandsUpAnimationStatus(true);

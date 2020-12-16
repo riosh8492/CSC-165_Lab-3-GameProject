@@ -134,7 +134,7 @@ public class MoveFrontBackAction extends AbstractInputAction
 			givenTime = localGame.obtainTime1();
 			nodeModeAction(time/1000.0f, e);
 			
-			/*//  If animation not already playing, play the animation. 
+			///  If animation not already playing, play the animation. 
 			if (localGame.getWalkAnimationStatus() == false)
 			{
 				localGame.setWalkAnimationStatus(true);
