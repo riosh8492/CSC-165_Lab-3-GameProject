@@ -120,8 +120,8 @@ public class MyGame extends VariableFrameRateGame // Ship to School Comp.
 	private boolean originBallSender = true; // Networking related. 
 	
 	private boolean playerStatus = false;
-	private Vector3f clientPos1 = (Vector3f) Vector3f.createFrom(0.0f, 0.8f, 3.0f); // Positioning. 
-	private Vector3f clientPos2 = (Vector3f) Vector3f.createFrom(0.0f, 0.8f, -3.0f);	
+	private Vector3f clientPos1 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, 3.0f); // Positioning. 
+	private Vector3f clientPos2 = (Vector3f) Vector3f.createFrom(0.0f, 0.5f, -3.0f);	
 	
 	// Game State Boolean Variables.
 	private boolean p1Serve = false; // For resetting ball position. 
