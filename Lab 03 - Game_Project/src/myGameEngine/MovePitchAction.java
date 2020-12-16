@@ -93,7 +93,7 @@ public class MovePitchAction extends AbstractInputAction{
 			{  angle = myPosAngle; messageDir = true;   }
 			else if (stickValue < -0.4f)
 			{  angle = myNegAngle; messageDir = false;   }
-			clientModelNode.pitch(angle);
+			//clientModelNode.pitch(angle);
 		}//*/
 		
 		if (clientModelNode != null) // If a game ref wasn't entered.

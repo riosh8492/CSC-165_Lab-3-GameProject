@@ -83,9 +83,9 @@ public class MyGame extends VariableFrameRateGame
 	// Input-Action Management
 	private InputManager im;       // Variable for Input Manager
 	private Action quitGameAction; // Action objs to be tied to certain button components.
-	private Action moveFrontBackAction;  
-	private Action moveLeftRightAction;            
-	private Action yawNodeAction, pitchNodeAction; 
+	private Action moveFrontBackAction, moveFrontBackActionGP;  
+	private Action moveLeftRightAction, moveLeftRightActionGP;            
+	private Action yawNodeAction, yawNodeActionGP, pitchNodeAction, pitchNodeActionGP; 
 
 	private Camera3Pcontroller orbitController1;
 	
@@ -113,7 +113,7 @@ public class MyGame extends VariableFrameRateGame
 	private Tessellation tessTest; // Sound Variables. 
 	private float movemt = 0.01f;
 	IAudioManager audioMgr;
-	Sound oceanSound, bkgdMusic;
+	Sound oceanSound, bkgdMusic, bitMusic;
 	
 	private boolean initWalkAnimation = false;     // Animation variables. 
 	private boolean initHandsWaveAnimation = false;
@@ -133,20 +133,21 @@ public class MyGame extends VariableFrameRateGame
 	//private Vector3f clientPos, ghostNPC1, ghostNPC2, ghostClient; //  
 	private Vector3f prevBallPos; 
 	
-    public MyGame(String serverAddr, int sPort, String placeHolder)
+    public MyGame(String serverAddr, int sPort, String protocol)
     {
         super();
         
         System.out.println("MyGame Initilization");
         System.out.println("IP adress: " + serverAddr);
         System.out.println("sPort: " + sPort);
-        System.out.println("UDP/TCP?: " + placeHolder);
+        System.out.println("UDP/TCP?: " + protocol);
+        
         serverAddress = serverAddr;
         serverPort = sPort;
         serverProtocol = ProtocolType.UDP; // Change to UDP
 
-		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server. 
-
+		setupNetworking(elapsTime/1000.0f); // Send inital JOIN message to Server.
+		
 		setupScriptVariables("a3\\scriptGameInit.js");
 	}
 
@@ -178,12 +179,12 @@ public class MyGame extends VariableFrameRateGame
     {
     	Game tempGame;
     	boolean userConfirm = false; 
-    	String command, givenIP = "10.0.0.246";
+    	String command, givenIP = "10.0.0.246", givenFSM = "no";
     	int    givenPort = 6020;
     	String initalRequest = "Welcome to Summer Time Volleyball.";
     	String requestIP = "Enter IP address. ";
     	String requestPort = "Enter Port Number. ";
-    	String confirmInput = "", confirmRequest = "Enter (Y/N) to Confirm... ";
+    	//String confirmFSM = "Enter (Y/N) to Confirm Fullscreen Mode ?";
     	Scanner myObj = new Scanner(System.in);  // Create a Scanner object
         
     	System.out.println(initalRequest); // Greet User. 
@@ -192,13 +193,15 @@ public class MyGame extends VariableFrameRateGame
     	givenIP = myObj.nextLine();
     	System.out.println(requestPort); // Get Port Number from user. 
     	givenPort = myObj.nextInt();
-            	
+    	//System.out.println(confirmFSM); // Ask if FSM to use. 
+    	//givenFSM = myObj.nextLine();
+    	            	
     	tempGame = new MyGame(givenIP, givenPort, "UDP"); // 127.0.0.1   
-		System.out.println("Client Initilization complete."); 
-
+		
+    	System.out.println("Client Initilization complete."); 
     	return tempGame;
     }
-	
+
 	private void setupScriptVariables(String filepath)
 	{
     	ScriptEngineManager factory = new ScriptEngineManager();
@@ -245,8 +248,15 @@ public class MyGame extends VariableFrameRateGame
 	
     // Auto-called by Rage
 	@Override
-	protected void setupWindow(RenderSystem rs, GraphicsEnvironment ge) {
-		rs.createRenderWindow(new DisplayMode(1000, 700, 24, 60), false);
+	protected void setupWindow(RenderSystem rs, GraphicsEnvironment ge) 
+	{
+		GraphicsDevice gd = ge.getDefaultScreenDevice();
+		DisplaySettingsDialog dsd = new DisplaySettingsDialog(ge.getDefaultScreenDevice());
+		dsd.showIt();
+		RenderWindow rw = rs.createRenderWindow(dsd.getSelectedDisplayMode(),
+				dsd.isFullScreenModeSelected());
+		
+		//rs.createRenderWindow(new DisplayMode(1000, 700, 24, 60), false);
 	}
 
     @Override
@@ -293,6 +303,8 @@ public class MyGame extends VariableFrameRateGame
     	
     	// Gameplay related
     	SceneNode targetPosNode = sm.getRootSceneNode().createChildSceneNode("TargetPosNode");
+    	SceneNode BenchAudienceGroup = sm.getRootSceneNode().createChildSceneNode("BenchAudienceGroupNode");
+    	SetupSceneGraph(sm, BenchAudienceGroup);
     	
     	// Set Up Game Ball Object. 
     	Entity sphereE = sm.createEntity("gameBall", "gameBall01.obj"); // Was: "earth.obj"
@@ -317,23 +329,21 @@ public class MyGame extends VariableFrameRateGame
         // End of Set up Net Object. -----------------
         
         // Set Up other NPC Model Obj 1 -------------
-        Entity knightE = sm.createEntity("npc_knight", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
-        knightE.setPrimitive(Primitive.TRIANGLES);
+        //Entity knightE = sm.createEntity("npc_knight", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+        //knightE.setPrimitive(Primitive.TRIANGLES);
         
-        SceneNode knightN = sm.getRootSceneNode().createChildSceneNode(knightE.getName() + "Node");
-        knightN.setLocalPosition(3.0f, 1.0f, -1.0f);
+        //SceneNode knightN = sm.getRootSceneNode().createChildSceneNode(knightE.getName() + "Node");
+        //knightN.setLocalPosition(3.0f, 1.0f, -1.0f);
         //knightN.scale(2.0f, 2.0f, 2.0f);
-        knightN.attachObject(knightE);
+        //knightN.attachObject(knightE);
         // Set Up other NPC Model Obj 1 -----End-----
         
-        
         // Set Up Model & Texture for Player 1 ---
-        
         // Create Model Object with Animations/Skeleton/Mesh
         // initalizeTestModel("clientModel");
         
         //* Block out this set up to then use animated model in inititalizeModel. 
-		Entity clientE = sm.createEntity("clientModel", "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+		Entity clientE = sm.createEntity("clientModel", "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
 		clientE.setPrimitive(Primitive.TRIANGLES);
         
         // Set client Node
@@ -363,16 +373,68 @@ public class MyGame extends VariableFrameRateGame
         // Set up any area Lights
         setUpLights(sm);
 
-        //sm.addController(rotateController); // Adds controller to SM.
-        //sm.addController(customController);
-        
         initAudio(sm); // Begins Sound Setup
         
         System.out.println("End SceneSetup");
-        // End Scene Set Up
     }
     
-    private void setUpLights(SceneManager sm)
+    private void SetupSceneGraph(SceneManager sm, SceneNode groupNode) throws IOException 
+    {
+    	SceneNode benchGroupNode1 = groupNode.createChildSceneNode("BenchGroupNode1");
+    	createBenchAudience(benchGroupNode1, sm, 4.0f, -1.0f, 0.0f, "Grp1");
+    }
+    	
+    	
+	private void createBenchAudience(SceneNode benchGroupNode1, SceneManager sm, float x, float y, float z, String GroupNodeName) throws IOException 
+	{
+		// TODO Auto-generated method stub
+		// Set Up first Bench Model
+    	Entity benchE = sm.createEntity("bench", "H_Bench_Chair.obj"); 
+    	benchE.setPrimitive(Primitive.TRIANGLES);
+        
+        SceneNode benchN = benchGroupNode1.createChildSceneNode(benchE.getName() + "Node");
+        benchN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+        benchN.rotate(Degreef.createFrom(90.0f), benchN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        benchN.scale(0.3f, 0.3f, 0.3f);
+        benchN.attachObject(benchE);
+        
+        // Set Up One Audience Obj.
+        Entity observer1E = sm.createEntity("observer1E", "H_Audience01_Mesh.obj"); 
+        observer1E.setPrimitive(Primitive.TRIANGLES);
+    	
+        SceneNode observerN = benchN.createChildSceneNode(observer1E.getName() + "Node");
+        observerN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+        observerN.rotate(Degreef.createFrom(180.0f), benchN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        observerN.scale(0.5f, 0.5f, 0.5f);
+        observerN.attachObject(observer1E);
+        observerN.setLocalPosition(x, y+4.6f, z);
+        
+        // Set Up Second Audience Obj
+        Entity observer2E = sm.createEntity("observer2E", "H_Audience01_Mesh.obj"); 
+        observer2E.setPrimitive(Primitive.TRIANGLES);
+    	
+        SceneNode observer2N = benchN.createChildSceneNode(observer2E.getName() + "Node");
+        observer2N.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+        observer2N.rotate(Degreef.createFrom(180.0f), benchN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        observer2N.scale(0.5f, 0.5f, 0.5f);
+        observer2N.attachObject(observer2E);
+        observer2N.setLocalPosition(x-4.0f, y+4.6f, z);
+        
+        // Set Up THIRD Audience Obj
+        Entity observer3E = sm.createEntity("observer3E", "H_Audience01_Mesh.obj"); 
+        observer2E.setPrimitive(Primitive.TRIANGLES);
+    	
+        SceneNode observer3N = benchN.createChildSceneNode(observer3E.getName() + "Node");
+        observer3N.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+        observer3N.rotate(Degreef.createFrom(180.0f), benchN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+        observer3N.scale(0.5f, 0.5f, 0.5f);
+        observer3N.attachObject(observer3E);
+        observer3N.setLocalPosition(x-8.0f, y+4.6f, z);
+        
+        benchGroupNode1.setLocalPosition(x, y, z);
+	}
+
+	private void setUpLights(SceneManager sm)
     {
     	// Lighting Environment
         sm.getAmbientLight().setIntensity(new Color(.4f, .4f, .4f)); // was .3f
@@ -405,9 +467,8 @@ public class MyGame extends VariableFrameRateGame
     // SOUND SETUP Start
 	private void initAudio(SceneManager sm) 
 	{
-		AudioResource resource1;//, resource2;
-		audioMgr = AudioManagerFactory.createAudioManager(
-				"ray.audio.joal.JOALAudioManager");
+		AudioResource resource1, resource2;
+		audioMgr = AudioManagerFactory.createAudioManager("ray.audio.joal.JOALAudioManager");
 		if (!audioMgr.initialize())
 		{   
 			System.out.println("Audio Manager failed to initialize!");
@@ -415,16 +476,31 @@ public class MyGame extends VariableFrameRateGame
 		}
 		resource1 = audioMgr.createAudioResource("bensound_dreams_background_music.wav",
 				AudioResourceType.AUDIO_SAMPLE);
+		resource2 = audioMgr.createAudioResource("Ball_Hit_Sound.wav",
+				AudioResourceType.AUDIO_SAMPLE);
 		
+		// Background music
 		bkgdMusic = new Sound(resource1, SoundType.SOUND_EFFECT, 100, true);
 		bkgdMusic.initialize(audioMgr);
 		
-		bkgdMusic.setMaxDistance(10.0f);
+		// Sound Bit
+		bitMusic = new Sound(resource2, SoundType.SOUND_EFFECT, 100, true);
+		bitMusic.initialize(audioMgr);
+		
+		bkgdMusic.setVolume(70);
+		bkgdMusic.setMaxDistance(100.0f); // bkgd music
 		bkgdMusic.setMinDistance(0.5f);
 		bkgdMusic.setRollOff(5.0f);
 		
-		SceneNode ballN = sm.getSceneNode("gameBallNode");
-		bkgdMusic.setLocation(ballN.getWorldPosition());
+		bitMusic.setMaxDistance(10.0f); // Ball touch sound music
+		bitMusic.setMinDistance(0.5f);
+		bitMusic.setRollOff(5.0f);
+		
+		SceneNode netN = sm.getSceneNode("courtNetModelNode"); 
+		bkgdMusic.setLocation(netN.getWorldPosition());
+		
+		SceneNode ballN = sm.getSceneNode("gameBallNode"); 
+		bitMusic.setLocation(ballN.getWorldPosition());
 
 		setEarParameters(sm);
 		
@@ -436,19 +512,18 @@ public class MyGame extends VariableFrameRateGame
 		SceneNode clientN = sm.getSceneNode("clientModelNode"); // Change
 		Vector3 avDir = orbitController1.obtainCameraPosition(); // Gets forward vector position of camera. 
 		
-		// note - should get the camera's forward direction
-		// - avatar direction plus azimuth
-		
 		audioMgr.getEar().setLocation(clientN.getWorldPosition());
 		audioMgr.getEar().setOrientation(avDir, Vector3f.createFrom(0,1,0));
 	}
 	
 	public void updateGameSounds()
 	{
-		SceneManager sm = getEngine().getSceneManager();
+		SceneManager sm = getEngine().getSceneManager(); // courtNetModelNode
+		SceneNode netN = sm.getSceneNode("courtNetModelNode");
 		SceneNode ballN = sm.getSceneNode("gameBallNode");
-
-		bkgdMusic.setLocation(ballN.getWorldPosition());
+		
+		bkgdMusic.setLocation(netN.getWorldPosition());
+		bitMusic.setLocation(ballN.getWorldPosition());
 		setEarParameters(sm);
 	}
 	// SOUND SETUP End
@@ -467,9 +542,15 @@ public class MyGame extends VariableFrameRateGame
     	quitGameAction = new QuitGameAction(this, protClient);
 	    moveFrontBackAction = new MoveFrontBackAction(p1ClientNode, this, protClient);
 	    moveLeftRightAction = new MoveLeftRightAction(p1ClientNode, this, protClient);	
-		
+
+	    moveFrontBackActionGP = new MoveFrontBackAction(p1ClientNode, this, protClient); // movement controls for dolphin 2. 
+	    moveLeftRightActionGP = new MoveLeftRightAction(p1ClientNode, this, protClient);
+	    		
 		yawNodeAction = new MoveYawAction(p1ClientNode, this, protClient);
 	    pitchNodeAction = new MovePitchAction(p1ClientNode, this, protClient);
+	    
+	    yawNodeActionGP = new MoveYawAction(p1ClientNode, this, protClient);
+	    pitchNodeActionGP = new MovePitchAction(p1ClientNode, this, protClient);
 	    
 	    for (i = 0; i < controllers.size(); i++)
 	    {
@@ -520,7 +601,7 @@ public class MyGame extends VariableFrameRateGame
 	    	}
 	    	else if (inputComponent.getType() == Controller.Type.GAMEPAD || 
 	    			 inputComponent.getType() == Controller.Type.STICK) 
-	    	{   /*// Remove Game-Pad funcitons for now. 
+	    	{   
 	    		im.associateAction(inputComponent,
 		 	    		net.java.games.input.Component.Identifier.Button._9,
 		 	    		quitGameAction,
@@ -541,7 +622,6 @@ public class MyGame extends VariableFrameRateGame
 		 	    		net.java.games.input.Component.Identifier.Axis.RX,
 		 	    		yawNodeActionGP,
 		 	    		InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-		 	    //*/
 	    	}
 	    };
     }
@@ -568,7 +648,7 @@ public class MyGame extends VariableFrameRateGame
 		SceneNode gameBallN = getEngine().getSceneManager().getSceneNode("gameBallNode"); 
 		SceneNode clientN = getEngine().getSceneManager().getSceneNode("clientModelNode"); // clientPhysObj
 		SceneNode courtNetN = getEngine().getSceneManager().getSceneNode("courtNetModelNode"); 
-		SceneNode npcKnightN = getEngine().getSceneManager().getSceneNode("npc_knightNode");
+		//SceneNode npcKnightN = getEngine().getSceneManager().getSceneNode("npc_knightNode");
 	
 		// Set Up Game Ball Object. 
 		temptf = toDoubleArray(gameBallN.getLocalTransform().toFloatArray());
@@ -580,11 +660,11 @@ public class MyGame extends VariableFrameRateGame
 		gameBallN.setPhysicsObject(gameBallPhysObj);
 		
 		// Set Up Physics NPC Object
-		temptf = toDoubleArray(npcKnightN.getLocalTransform().toFloatArray());
-		npcKnightPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.82f);
-		npcKnightPhysObj.setBounciness(0.5f);
-		npcKnightN.scale(0.3f, 0.3f, 0.3f);
-		npcKnightN.setPhysicsObject(npcKnightPhysObj);
+		//temptf = toDoubleArray(npcKnightN.getLocalTransform().toFloatArray());
+		//npcKnightPhysObj = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.82f);
+		//npcKnightPhysObj.setBounciness(0.5f);
+		//npcKnightN.scale(0.3f, 0.3f, 0.3f);
+		//npcKnightN.setPhysicsObject(npcKnightPhysObj);
 				
 		// Set up client Object
 		temptf = toDoubleArray(clientN.getLocalTransform().toFloatArray());
@@ -796,7 +876,7 @@ public class MyGame extends VariableFrameRateGame
 		
 		boolean condition5 = ( (curZPos + bounds) > (tempZPos - bounds)) ? true : false;
 		boolean condition6 = ( (curZPos - bounds) < (tempZPos + bounds)) ? true : false;
-				
+			
 		if (collisionRecord.size() != 0) // Ensure we aren't going through empty list. 
 		{
 			if (condition3 && condition4 && condition5 && condition6)
@@ -805,15 +885,18 @@ public class MyGame extends VariableFrameRateGame
 				
 				if (!(initialObj.getName().contains("Net")) && !(tempObj.getName().contains("Net"))) 
 				{
+					
 					if (initialObj.getName().contains("Ball"))
 					{   
 						//System.out.println("Ball encountered.");
+						bitMusic.play(70, false);
 						movePhysicsBall(initialObj, tempObj); 
 						ballAngle = 1.0f;
 					}
 					else if (tempObj.getName().contains("Ball"))
 					{   
 						//System.out.println("Ball encountered.");
+						bitMusic.play(70, false);
 						movePhysicsBall(tempObj, initialObj);
 						ballAngle = 1.5f;
 					}
@@ -845,6 +928,8 @@ public class MyGame extends VariableFrameRateGame
 		{   physBall.setLinearVelocity(forceFloat);    }
 		else if (ballPos.z() < -0.1f) // On the -Z Axis side of the net.
 		{   physBall.setLinearVelocity(forceFloat2);   }
+		
+		// bitMusic.stop(); // Stop bit sound. 
 	}
 
 	// Physics Utility Functions
@@ -1228,12 +1313,11 @@ public class MyGame extends VariableFrameRateGame
 		if (avatar != null)
 		{ 
 			gameMultiplayerOnline = true;
-			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "racoonModel.obj");
+			Entity ghostE = sm.createEntity("Ghost_ID:" + avatar.obtainGhostID().toString(), "MayaKnight-Blender.obj");
 			ghostE.setPrimitive(Primitive.TRIANGLES);
 			
 			//SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node");
 			//ghostN.attachObject(ghostE);
-			
 			
 	        // Set client Node
 	        SceneNode ghostN = sm.getRootSceneNode().createChildSceneNode(ghostE.getName() + ":Node"); // clientModelNode
@@ -1241,8 +1325,8 @@ public class MyGame extends VariableFrameRateGame
 
 			//ghostN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
 			//ghostN.rotate(Degreef.createFrom(180.0f), ghostN.getLocalPosition()); // Trying to position the dolphin to face -z axis
-			//ghostN.setLocalPosition(0.0f, 0.5f, 3.0f);
-	        ghostN.scale(0.3f, 0.3f, 0.3f);
+			ghostN.setLocalPosition(0.0f, 0.5f, 3.0f);
+	        ghostN.scale(0.1f, 0.1f, 0.1f);
 			ghostN.attachObject(ghostE); // */ 
 			// ========
 			
@@ -1319,12 +1403,19 @@ public class MyGame extends VariableFrameRateGame
 		
 		try 
 		{
-			Entity npcE = sm.createEntity("NPC_" + newNPC.obtainID(), "MayaKnight-Blender.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
+			Entity npcE = sm.createEntity("NPC_" + newNPC.obtainID(), "racoonModel.obj"); // dolphinHighPoly.obj-BasicModelUVMapping.obj
 	        npcE.setPrimitive(Primitive.TRIANGLES); // NPC_0_Node
 	        
 	        SceneNode npcNode = sm.getRootSceneNode().createChildSceneNode(npcE.getName() + "_Node");
 	        npcNode.setLocalPosition(pos.x(), pos.y()+1.0f, pos.z());
-	        //npcNode.scale(0.10f, 0.10f, 0.10f);
+
+	        if (npcNode.getLocalPosition().z() > 0.0f)
+	        {
+	        	npcNode.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+	        	npcNode.rotate(Degreef.createFrom(180.0f), npcNode.getLocalPosition()); // Trying to position the dolphin to face -z axis
+	        }
+	        
+	        npcNode.setLocalPosition(pos.x(), pos.y()+1.0f, pos.z());
 	        npcNode.attachObject(npcE);
 	        
 	        // Set up NPC physics Obj. -> npcPhysObj01, npcPhysObj02;
@@ -1332,7 +1423,7 @@ public class MyGame extends VariableFrameRateGame
 	        npcPhysObj01 = physicsEng.addSphereObject(physicsEng.nextUID(), mass, temptf, 0.4f); // 0.2f w sphere.
 	        npcPhysObj01.setBounciness(0.5f);
 	     
-	        npcNode.scale(0.10f, 0.10f, 0.10f);
+	        npcNode.scale(0.30f, 0.30f, 0.30f);
 	        npcNode.setPhysicsObject(npcPhysObj01);
 		}
 		catch (IOException e) 
@@ -1435,7 +1526,7 @@ public class MyGame extends VariableFrameRateGame
 		
 		if (serverClientCount == 1) // First to connect to server. 
 		{
-			System.out.println("ADDED ONE CLIENT. THIS IS PLAYER 1");
+			//System.out.println("ADDED ONE CLIENT. THIS IS PLAYER 1");
 			clientN.setLocalPosition(clientPos1.x(), clientPos1.y(), clientPos1.z());
 			// First to serve and set Ball movement msgs. 
 			sendBallMsgs = true; // Send ball movement locations
@@ -1444,9 +1535,14 @@ public class MyGame extends VariableFrameRateGame
 		}
 		else if (serverClientCount == 2)
 		{
-			System.out.println("ADDED SECOND CLIENT. THIS IS PLAYER 2");
-
+			//System.out.println("ADDED SECOND CLIENT. THIS IS PLAYER 2");
+			
+	        clientN.setLocalPosition(0.0f, 1.0f, 0.0f); // y axis
+	        clientN.rotate(Degreef.createFrom(180.0f), clientN.getLocalPosition()); // Trying to position the dolphin to face -z axis
+	        clientN.setLocalPosition(0.0f, 0.5f, 3.0f);
+	        
 			clientN.setLocalPosition(clientPos2.x(), clientPos2.y(), clientPos2.z());
+			
 			p2Serve = true;      // Set ball serve ready. 
 			sendBallMsgs = false; 
 			gameMultiplayerOnline = true;  

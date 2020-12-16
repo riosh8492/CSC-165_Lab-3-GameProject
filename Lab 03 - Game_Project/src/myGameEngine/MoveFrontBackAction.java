@@ -83,6 +83,9 @@ public class MoveFrontBackAction extends AbstractInputAction
 			else if (stickValue < 0.0f)
 			{  
 				clientModelNode.moveForward(deltaPos); 
+				
+				localGame.setP1ServeStatus(false);
+				localGame.setP2ServeStatus(false);
 				/*if (isWithinBounds((Vector3f) clientModelNode.getLocalPosition()) == false)
 				{
 					clientModelNode.moveBackward(deltaPos);

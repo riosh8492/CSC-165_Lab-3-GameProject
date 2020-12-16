@@ -385,11 +385,22 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 			{
 				try
 				{ 
-					msg = new String("m_npc," + Integer.toString(i));
-					msg += "," + npc.getX();
-					msg += "," + npc.getY();
-					msg += "," + npc.getZ();
-					sendPacketToAll(msg);
+					if (clientAmount == 1)
+					{
+						msg = new String("m_npc," + Integer.toString(i));
+						msg += "," + npc.getX();
+						msg += "," + npc.getY();
+						msg += "," + npc.getZ();
+						sendPacketToAll(msg);
+					}
+					else
+					{
+						msg = new String("m_npc," + Integer.toString(i));
+						msg += "," + (npc.getX() + 1.0f );
+						msg += "," + npc.getY();
+						msg += "," + (npc.getZ() + 2.0f );
+						sendPacketToAll(msg);
+					}
 				}
 				catch (IOException e)
 				{

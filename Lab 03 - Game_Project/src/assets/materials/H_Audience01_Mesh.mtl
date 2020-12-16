@@ -1,0 +1,14 @@
+# Blender MTL File: 'H_Audience01.blend'
+# Material Count: 1
+
+newmtl Dummy_NPC
+Ns 70.000000
+Ka 0.400000 0.400000 0.400000
+Kd 0.500000 0.500000 0.500000
+Ks 0.800000 0.800000 0.800000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+# texture
+map_Kd H_Audience_UV_Texture.png
